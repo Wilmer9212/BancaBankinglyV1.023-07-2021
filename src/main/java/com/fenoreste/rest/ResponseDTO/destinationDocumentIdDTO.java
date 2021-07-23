@@ -15,16 +15,14 @@ import com.fenoreste.rest.ResponseDTO.*;
 public class destinationDocumentIdDTO {
     
     private String integrationProperties;
-    private String documentNumber;
-    private String documentType;
+    private Integer documentNumber=0;
+    private Integer documentType=0;
 
     public destinationDocumentIdDTO() {
     }
 
-    public destinationDocumentIdDTO(String integrationProperties, String documentNumber, String documentType) {
+    public destinationDocumentIdDTO(String integrationProperties) {
         this.integrationProperties = integrationProperties;
-        this.documentNumber = documentNumber;
-        this.documentType = documentType;
     }
 
     public String getIntegrationProperties() {
@@ -35,26 +33,23 @@ public class destinationDocumentIdDTO {
         this.integrationProperties = integrationProperties;
     }
 
-    public String getDocumentNumber() {
+    public Integer getDocumentNumber() {
         return documentNumber;
     }
 
-    public void setDocumentNumber(String documentNumber) {
+    public void setDocumentNumber(Integer documentNumber) {
         this.documentNumber = documentNumber;
     }
 
-    public String getDocumentType() {
+    public Integer getDocumentType() {
         return documentType;
     }
 
-    public void setDocumentType(String documentType) {
+    public void setDocumentType(Integer documentType) {
         this.documentType = documentType;
     }
 
-    @Override
-    public String toString() {
-        return "destinationDocumentIdDTO{" + "integrationProperties=" + integrationProperties + ", documentNumber=" + documentNumber + ", documentType=" + documentType + '}';
-    }
+    
     
     
     

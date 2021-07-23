@@ -3,56 +3,31 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+package com.fenoreste.rest.DTO;
 
-package com.fenoreste.rest.entidades;
-
+import com.fenoreste.rest.entidades.TablasPK;
 import java.io.Serializable;
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import java.util.Objects;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  *
- * @author Elliot
+ * @author gerardo
  */
-@Cacheable(false)
-@Entity
-@Table(name = "tablas")
-public class Tablas implements Serializable {
+public class TablasDTO implements Serializable {
+
     private static final long serialVersionUID = 1L;
-    @EmbeddedId
+
     protected TablasPK tablasPK;
-    @Column(name = "nombre")
     private String nombre;
-    @Column(name = "dato1")
     private String dato1;
-    @Column(name = "dato2")
     private String dato2;
-    @Column(name = "dato3")
     private String dato3;
-    @Column(name = "dato4")
     private String dato4;
-    @Column(name = "dato5")
     private String dato5;
-    @Column(name = "tipo")
     private short tipo;
 
-    public Tablas() {
-    }
-
-    public Tablas(TablasPK tablasPK) {
-        this.tablasPK = tablasPK;
-    }
-
-    public Tablas(TablasPK tablasPK, short tipo) {
-        this.tablasPK = tablasPK;
-        this.tipo = tipo;
-    }
-
-    public Tablas(String idtabla, String idelemento) {
-        this.tablasPK = new TablasPK(idtabla, idelemento);
+    public TablasDTO() {
     }
 
     public TablasPK getTablasPK() {
@@ -121,25 +96,26 @@ public class Tablas implements Serializable {
 
     @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (tablasPK != null ? tablasPK.hashCode() : 0);
+        int hash = 3;
+        hash = 79 * hash + Objects.hashCode(this.tablasPK);
         return hash;
     }
 
     @Override
-    public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Tablas)) {
+    public boolean equals(Object obj) {
+        if (obj == null) {
             return false;
         }
-        Tablas other = (Tablas) object;
-        return !((this.tablasPK == null && other.tablasPK != null) || (this.tablasPK != null && !this.tablasPK.equals(other.tablasPK)));
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final TablasDTO other = (TablasDTO) obj;
+        return Objects.equals(this.tablasPK, other.tablasPK);
     }
 
     @Override
     public String toString() {
-        return "com.fenoreste.ws.rest.modelos.entidad.Tablas[ tablasPK=" + tablasPK + " ]";
+        return "TablasDTO{" + "tablasPK=" + tablasPK + ", nombre=" + nombre + ", dato1=" + dato1 + ", dato2=" + dato2 + ", dato3=" + dato3 + ", dato4=" + dato4 + ", dato5=" + dato5 + ", tipo=" + tipo + '}';
     }
-
 
 }

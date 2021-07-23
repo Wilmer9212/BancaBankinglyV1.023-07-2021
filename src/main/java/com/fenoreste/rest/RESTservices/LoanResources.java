@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.fenoreste.rest.services;
+package com.fenoreste.rest.RESTservices;
 
 import com.fenoreste.rest.ResponseDTO.LoanDTO;
 import com.fenoreste.rest.ResponseDTO.LoanFee;

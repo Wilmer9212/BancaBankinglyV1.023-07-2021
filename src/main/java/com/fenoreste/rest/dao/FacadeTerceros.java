@@ -10,18 +10,11 @@ import com.fenoreste.rest.ResponseDTO.Bank;
 import com.fenoreste.rest.ResponseDTO.ThirdPartyProductDTO;
 import com.fenoreste.rest.ResponseDTO.userDocumentIdDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
-import com.fenoreste.rest.entidades.Auxiliares;
-import com.fenoreste.rest.entidades.Persona;
-import com.fenoreste.rest.entidades.PersonasPK;
-import com.fenoreste.rest.entidades.Productos;
 import com.fenoreste.rest.entidades.ProductosTerceros;
 import java.util.ArrayList;
-import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
 import javax.persistence.Query;
-import javax.transaction.Transaction;
 
 /**
  *
@@ -73,8 +66,8 @@ public abstract class FacadeTerceros<T> {
                 productosTerceros.setOwnerCity(dtoInput.getOwnerCity());
                 productosTerceros.setOwnerAddress(dtoInput.getOwnerAddress());
                 productosTerceros.setOwnerDocumentId_integrationProperties(dtoInput.getOwnerDocumentId().getIntegrationProperties());
-                productosTerceros.setOwnerDocumentId_documentNumber(dtoInput.getOwnerDocumentId().getDocumentNumber());
-                productosTerceros.setOwnerDocumentId_documentType(dtoInput.getOwnerDocumentId().getDocumentType());
+                productosTerceros.setOwnerDocumentId_documentNumber(String.valueOf(dtoInput.getOwnerDocumentId().getDocumentNumber()));
+                productosTerceros.setOwnerDocumentId_documentType(String.valueOf(dtoInput.getOwnerDocumentId().getDocumentType()));
                 productosTerceros.setOwnerPhoneNumber(dtoInput.getOwnerPhoneNumber());
                 productosTerceros.setBank_bankId(dtoInput.getBank().getBankId());
                 productosTerceros.setBank_countryId(dtoInput.getBank().getCountryId());
@@ -86,8 +79,8 @@ public abstract class FacadeTerceros<T> {
                 productosTerceros.setCorrespondentBank_description(dtoInput.getCorrespondentBank().getDescription());
                 productosTerceros.setCorrespondentBank_headQuartersAddress(dtoInput.getCorrespondentBank().getHeadQuartersAddress());
                 productosTerceros.setCorrespondentBank_routingCode(dtoInput.getCorrespondentBank().getRoutingCode());
-                productosTerceros.setUserDocumentId_documentNumber(dtoInput.getUserDocumentId().getDocumentNumber());
-                productosTerceros.setUserDocumentId_documentType(dtoInput.getUserDocumentId().getDocumentType());
+                productosTerceros.setUserDocumentId_documentNumber(String.valueOf(dtoInput.getUserDocumentId().getDocumentNumber()));
+                productosTerceros.setUserDocumentId_documentType(String.valueOf(dtoInput.getUserDocumentId().getDocumentType()));
                 productosTerceros.setUserDocumentId_integrationProperties(dtoInput.getUserDocumentId().getIntegrationProperties());
                   try {
                     if (!em.getTransaction().isActive()) {
@@ -148,8 +141,8 @@ public abstract class FacadeTerceros<T> {
             ProductosTerceros pt = (ProductosTerceros) query.getSingleResult();
             
             userDocumentIdDTO document=new userDocumentIdDTO();
-            document.setDocumentNumber(pt.getOwnerDocumentId_documentNumber());
-            document.setDocumentType(pt.getOwnerDocumentId_documentType());
+            document.setDocumentNumber(Integer.parseInt(pt.getOwnerDocumentId_documentNumber()));
+            document.setDocumentType(Integer.parseInt(pt.getOwnerDocumentId_documentType()));
             document.setIntegrationProperties(pt.getOwnerDocumentId_integrationProperties());
             
             Bank banco=new Bank();
@@ -167,8 +160,8 @@ public abstract class FacadeTerceros<T> {
             correspondentBank.setRoutingCode(pt.getCorrespondentBank_routingCode());
             
             userDocumentIdDTO userDocument=new userDocumentIdDTO();
-            userDocument.setDocumentNumber(pt.getUserDocumentId_documentNumber());
-            userDocument.setDocumentType(pt.getUserDocumentId_documentType());
+            userDocument.setDocumentNumber(Integer.parseInt(pt.getUserDocumentId_documentNumber()));
+            userDocument.setDocumentType(Integer.parseInt(pt.getUserDocumentId_documentType()));
             userDocument.setIntegrationProperties(pt.getUserDocumentId_integrationProperties());
                     
             ArrayList<String>listaPt=new ArrayList<>();

@@ -1,10 +1,10 @@
 
-package com.fenoreste.rest.services;
+package com.fenoreste.rest.RESTservices;
 
 
-import com.fenorest.rest.Auth.Security;
 import com.fenoreste.rest.ResponseDTO.ProductsConsolidatePositionDTO;
 import com.fenoreste.rest.ResponseDTO.ProductsDTO;
+import com.fenoreste.rest.Util.Authorization;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -13,31 +13,31 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import com.fenoreste.rest.dao.ProductsDAO;
-import com.fenoreste.rest.entidades.UserRest;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import java.util.ArrayList;
 import javax.ws.rs.HeaderParam;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 /**
  *
  * @author Elliot
  */
 @Path("/Products")
 public class ProductsResources {
+    
+    Authorization auth=new Authorization();
+    
     @POST
     @Produces({MediaType.APPLICATION_JSON+ ";charset=utf-8"})
     @Consumes({MediaType.APPLICATION_JSON+ ";charset=utf-8"})
-    public Response GetPRoducts(String cadena) {
+    public Response GetPRoducts(String cadena,@HeaderParam("authorization") String authString) {
         String ClientBankIdentifiers = "";
         Integer ProductTypes = null;
         JsonObject jsonError=new JsonObject();
-        ProductsDAO dao = new ProductsDAO();
-        Security scr = new Security();
-        /*if(!scr.isUserAuthenticated(authString)){
-            return Response.status(Response.Status.UNAUTHORIZED).build();
-        }*/
-        try {
+       
+        //-------------------------Obtiene el request json---------------------*/
+       try {
             JSONObject Object = new JSONObject(cadena);
             JSONArray jsonCB = Object.getJSONArray("clientBankIdentifiers");
             JSONArray jsonPB = Object.getJSONArray("productTypes");
@@ -51,10 +51,24 @@ public class ProductsResources {
             }
         } catch (Exception e) {
             jsonError.put("Error","Request Failed");
-            dao.cerrar();
+            
             return Response.status(Response.Status.BAD_REQUEST).entity(jsonError).build();
             
         }
+       /*-------------------------------------------------------*/
+        
+       
+       /*================================================================================================
+        Valida las credenciales
+       ==================================================================================================*/
+        /*if(!auth.isUserAuthenticated(authString)){
+            return Response.status(Response.Status.UNAUTHORIZED).entity("credenciales incorrectas").build();
+        }*/
+        
+       /*================================================================================================
+          Si las credenciales son correctas avanza        
+         ================================================================================================*/ 
+        ProductsDAO dao=new ProductsDAO();
         try {
             List<ProductsDTO> listaDTO = dao.getProductos(ClientBankIdentifiers, ProductTypes);
             if (listaDTO != null) {

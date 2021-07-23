@@ -4,16 +4,14 @@ import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.ResponseDTO.ProductsConsolidatePositionDTO;
 import com.fenoreste.rest.ResponseDTO.ProductsDTO;
 import com.fenoreste.rest.WsTDD.TarjetaDeDebito;
-import static com.fenoreste.rest.dao.FacadeTDD.emf;
 import com.fenoreste.rest.entidades.Auxiliares;
 import com.fenoreste.rest.entidades.Catalog_Status_Bankingly;
-import com.fenoreste.rest.entidades.Catalogo_Cuenta_Bankingly;
+import com.fenoreste.rest.entidades.CuentasBankingly;
 import com.fenoreste.rest.entidades.Persona;
 import com.fenoreste.rest.entidades.PersonasPK;
 import com.fenoreste.rest.entidades.Productos;
 import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;
-import com.fenoreste.rest.entidades.WsFoliosTarjetasSyC1;
 import com.fenoreste.rest.entidades.WsFoliosTarjetasSyCPK1;
 import com.syc.services.SiscoopTDD;
 import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
@@ -46,9 +44,8 @@ public abstract class FacadeProductos<T> {
         EntityManager em = emf.createEntityManager();
         String productTypeId = "", descripcion = "";
         try {
-
             String consulta = "";
-            Catalogo_Cuenta_Bankingly ccb = null;
+            CuentasBankingly ccb = null;
             if (!clientBankIdentifiers.equals("") && productTypes != null) {
                 consulta = "SELECT * FROM auxiliares a INNER JOIN tipos_cuenta_bankingly pr USING(idproducto) WHERE replace((to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999')),' ','')='" + clientBankIdentifiers + "' AND (SELECT producttypeid FROM tipos_cuenta_bankingly cb WHERE a.idproducto=cb.idproducto)=" + productTypes + " AND a.estatus=2";
             } else if (!clientBankIdentifiers.equals("") && productTypes == null) {
@@ -63,7 +60,7 @@ public abstract class FacadeProductos<T> {
                 Auxiliares a = ListaA.get(i);
 
                 try {
-                    ccb = em.find(Catalogo_Cuenta_Bankingly.class, a.getAuxiliaresPK().getIdproducto());
+                    ccb = em.find(CuentasBankingly.class, a.getAuxiliaresPK().getIdproducto());
                     productTypeId = String.valueOf(ccb.getProductTypeId());
                     descripcion = ccb.getDescripcion();
                 } catch (Exception e) {
@@ -163,7 +160,7 @@ public abstract class FacadeProductos<T> {
                     String sai = "";
                     String vencimiento = "";
                     Double tasa = 0.0;
-                    Catalogo_Cuenta_Bankingly ctb = em.find(Catalogo_Cuenta_Bankingly.class, a.getAuxiliaresPK().getIdproducto());
+                    CuentasBankingly ctb = em.find(CuentasBankingly.class, a.getAuxiliaresPK().getIdproducto());
                     if (ctb.getProductTypeId() == 4) {
                         try {
                             Query queryA = em.createNativeQuery("SELECT * FROM sai_auxiliar(" + a.getAuxiliaresPK().getIdorigenp() + ","

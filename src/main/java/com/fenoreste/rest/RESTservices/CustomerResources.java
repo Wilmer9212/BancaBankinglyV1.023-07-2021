@@ -3,18 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.fenoreste.rest.services;
+package com.fenoreste.rest.RESTservices;
 
 import com.fenoreste.rest.ResponseDTO.ClientByDocumentDTO;
-import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.dao.CustomerDAO;
 import com.fenoreste.rest.entidades.usuarios_banca_bankingly;
 import com.github.cliftonlabs.json_simple.JsonObject;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Query;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -51,7 +46,10 @@ public class CustomerResources {
         }
         return null;
     }
-
+    /*===============================================================================
+          METODO PARA BUSCAR SOCIO CON BASE A DOCUMENTOS QUE SE TRAE EN EL REQUEST
+    =================================================================================*/
+    
     @POST
     @Path("ByDocuments")
     @Produces({MediaType.APPLICATION_JSON + ";charset=utf-8"})

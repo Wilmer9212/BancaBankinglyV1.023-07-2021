@@ -5,6 +5,7 @@
  */
 package com.fenoreste.rest.entidades;
 
+import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -18,7 +19,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "tipos_cuenta_bankingly")
-public class Catalogo_Cuenta_Bankingly {
+public class CuentasBankingly implements Serializable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idproducto")
@@ -29,10 +30,10 @@ public class Catalogo_Cuenta_Bankingly {
     private String descripcion;
     @Column(name="producttypeid")
     private Integer productTypeId;
-    public Catalogo_Cuenta_Bankingly() {
+    public CuentasBankingly() {
     }
 
-    public Catalogo_Cuenta_Bankingly(Integer productTypeId, String productTypeName, String descripcion, Integer idproducto) {
+    public CuentasBankingly(Integer productTypeId, String productTypeName, String descripcion, Integer idproducto) {
         this.productTypeId = productTypeId;
         this.productTypeName = productTypeName;
         this.descripcion = descripcion;

@@ -199,11 +199,6 @@ public class ThirdPartyProductDTO {
     public void setUserDocumentId(userDocumentIdDTO userDocumentId) {
         this.userDocumentId = userDocumentId;
     }
-
-    @Override
-    public String toString() {
-        return "ThirdPartyProductDTO{" + "clientBankIdentifiers=" + clientBankIdentifiers + ", thirdPartyProductNumber=" + thirdPartyProductNumber + ", thirdPartyProductBankIdentifier=" + thirdPartyProductBankIdentifier + ", alias=" + alias + ", currencyId=" + currencyId + ", transactionSubType=" + transactionSubType + ", thirdPartyProductType=" + thirdPartyProductType + ", productType=" + productType + ", ownerName=" + ownerName + ", ownerCountryId=" + ownerCountryId + ", ownerEmail=" + ownerEmail + ", ownerCity=" + ownerCity + ", ownerAddress=" + ownerAddress + ", ownerDocumentId=" + ownerDocumentId + ", ownerPhoneNumber=" + ownerPhoneNumber + ", bank=" + bank + ", correspondentBank=" + correspondentBank + ", userDocumentId=" + userDocumentId + '}';
-    }
     
     
     

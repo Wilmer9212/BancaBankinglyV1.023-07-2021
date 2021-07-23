@@ -1,4 +1,4 @@
-package com.fenoreste.rest.services;
+package com.fenoreste.rest.RESTservices;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;

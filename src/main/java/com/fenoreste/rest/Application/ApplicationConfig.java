@@ -31,14 +31,13 @@ public class ApplicationConfig extends Application {
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider.class);
         resources.add(com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider.class);
-        resources.add(com.fenoreste.rest.Application.GenericResource.class);
-        resources.add(com.fenoreste.rest.services.AccountsResources.class);
-        resources.add(com.fenoreste.rest.services.CustomerResources.class);
-        resources.add(com.fenoreste.rest.services.LoanResources.class);
-        resources.add(com.fenoreste.rest.services.ProductsResources.class);
-        resources.add(com.fenoreste.rest.services.TercerosResources.class);
-        resources.add(com.fenoreste.rest.services.TestResources.class);
-        resources.add(com.fenoreste.rest.services.TransactionResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.AccountsResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.CustomerResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.LoanResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.ProductsResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.TercerosResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.TestResources.class);
+        resources.add(com.fenoreste.rest.RESTservices.TransactionResources.class);
     }
     
 }

@@ -3,13 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.fenoreste.rest.services;
+package com.fenoreste.rest.RESTservices;
 
-import com.fenoreste.rest.Request.ThirdPartyProduct;
 import com.fenoreste.rest.ResponseDTO.BackendOperationResultDTO;
 import com.fenoreste.rest.ResponseDTO.Bank;
 import com.fenoreste.rest.ResponseDTO.ThirdPartyProductDTO;
-import com.fenoreste.rest.ResponseDTO.destinationDocumentIdDTO;
 import com.fenoreste.rest.ResponseDTO.userDocumentIdDTO;
 import com.fenoreste.rest.dao.TercerosDAO;
 import com.github.cliftonlabs.json_simple.JsonObject;
@@ -62,9 +60,7 @@ public class TercerosResources {
             JSONArray clientBankIdentifiers=request.getJSONArray("clientBankIdentifiers");
             for(int i=0;i<clientBankIdentifiers.length();i++){
                 clientBankIdentifiers_.add(clientBankIdentifiers.getString(i));
-            }
-            
-            
+            } 
             thirdPartyProductNumber_=request.getString("thirdPartyProductNumber");
             thirdPartyProductBankIdentifier_=request.getString("thirdPartyProductBankIdentifier");
             alias_=request.getString("alias");
@@ -82,8 +78,8 @@ public class TercerosResources {
             
             //Obtenemos el objeto userDocumentId para ownerDocumentId
             JSONObject ownerDocumentId=request.getJSONObject("ownerDocumentId");
-            ownerDocumentId_.setDocumentNumber(ownerDocumentId.getString("documentNumber"));
-            ownerDocumentId_.setDocumentType(ownerDocumentId.getString("documentType"));
+            ownerDocumentId_.setDocumentNumber(ownerDocumentId.getInt("documentNumber"));
+            ownerDocumentId_.setDocumentType(ownerDocumentId.getInt("documentType"));
             ownerDocumentId_.setIntegrationProperties(ownerDocumentId.getString("integrationProperties"));
             
             //Obtenemos el objeto Bank para bank
@@ -106,8 +102,8 @@ public class TercerosResources {
             
             //Obtenemos el objeto userDocumentId para ownerDocumentId
             JSONObject userDocumentId=request.getJSONObject("userDocumentId");
-            userDocumentId_.setDocumentNumber(userDocumentId.getString("documentNumber"));
-            userDocumentId_.setDocumentType(userDocumentId.getString("documentType"));
+            userDocumentId_.setDocumentNumber(userDocumentId.getInt("documentNumber"));
+            userDocumentId_.setDocumentType(userDocumentId.getInt("documentType"));
             userDocumentId_.setIntegrationProperties(userDocumentId.getString("integrationProperties"));
              
             dtoTercero.setClientBankIdentifiers(clientBankIdentifiers_);

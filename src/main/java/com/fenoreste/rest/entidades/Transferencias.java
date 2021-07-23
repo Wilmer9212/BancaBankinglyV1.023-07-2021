@@ -20,7 +20,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "transferencias_bankingly")
-public class Transfers implements Serializable {
+public class Transferencias implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -56,11 +56,17 @@ public class Transfers implements Serializable {
     private String transactioncostcurrencyid;
     private Double exchangerate;
     private Date fechaejecucion;
+    private Integer destinationdocumentid_documentnumber;
+    private Integer destinationdocumentid_documenttype;
+    private Integer sourcedocumentid_documentnumber;
+    private Integer sourcedocumentid_documenttype;
+    private Integer userdocumentid_documentnumber;
+    private Integer userdocumentid_documenttype;
 
-    public Transfers() {
+    public Transferencias() {
     }
 
-    public Transfers(int idtransaction, Integer subtransactiontypeid, String currencyid, Date valuedate, Integer transactiontypeid, Integer transactionstatusid, String clientbankidentifier, String debitproductbankidentifier, Integer debitproducttypeid, String debitcurrencyid, String creditproductbankidentifier, Integer creditproducttypeid, String creditcurrencyid, Double amount, String notifyto, Integer notificationchannelid, Integer transactionid, String destinationname, String destinationbank, String description, String bankroutingnumber, String sourcename, String sourcebank, boolean regulationamountexceeded, String sourcefunds, String destinationfunds, Double transactioncost, String transactioncostcurrencyid, Double exchangerate, Date fechaejecucion) {
+    public Transferencias(int idtransaction, Integer subtransactiontypeid, String currencyid, Date valuedate, Integer transactiontypeid, Integer transactionstatusid, String clientbankidentifier, String debitproductbankidentifier, Integer debitproducttypeid, String debitcurrencyid, String creditproductbankidentifier, Integer creditproducttypeid, String creditcurrencyid, Double amount, String notifyto, Integer notificationchannelid, Integer transactionid, String destinationname, String destinationbank, String description, String bankroutingnumber, String sourcename, String sourcebank, boolean regulationamountexceeded, String sourcefunds, String destinationfunds, Double transactioncost, String transactioncostcurrencyid, Double exchangerate, Date fechaejecucion, Integer destinationdocumentid_documentnumber, Integer destinationdocumentid_documenttype, Integer sourcedocumentid_documentnumber, Integer sourcedocumentid_documenttype, Integer userdocumentid_documentnumber, Integer userdocumentid_documenttype) {
         this.idtransaction = idtransaction;
         this.subtransactiontypeid = subtransactiontypeid;
         this.currencyid = currencyid;
@@ -91,6 +97,12 @@ public class Transfers implements Serializable {
         this.transactioncostcurrencyid = transactioncostcurrencyid;
         this.exchangerate = exchangerate;
         this.fechaejecucion = fechaejecucion;
+        this.destinationdocumentid_documentnumber = destinationdocumentid_documentnumber;
+        this.destinationdocumentid_documenttype = destinationdocumentid_documenttype;
+        this.sourcedocumentid_documentnumber = sourcedocumentid_documentnumber;
+        this.sourcedocumentid_documenttype = sourcedocumentid_documenttype;
+        this.userdocumentid_documentnumber = userdocumentid_documentnumber;
+        this.userdocumentid_documenttype = userdocumentid_documenttype;
     }
 
     public int getIdtransaction() {
@@ -333,11 +345,58 @@ public class Transfers implements Serializable {
         this.fechaejecucion = fechaejecucion;
     }
 
+    public Integer getDestinationdocumentid_documentnumber() {
+        return destinationdocumentid_documentnumber;
+    }
+
+    public void setDestinationdocumentid_documentnumber(Integer destinationdocumentid_documentnumber) {
+        this.destinationdocumentid_documentnumber = destinationdocumentid_documentnumber;
+    }
+
+    public Integer getDestinationdocumentid_documenttype() {
+        return destinationdocumentid_documenttype;
+    }
+
+    public void setDestinationdocumentid_documenttype(Integer destinationdocumentid_documenttype) {
+        this.destinationdocumentid_documenttype = destinationdocumentid_documenttype;
+    }
+
+    public Integer getSourcedocumentid_documentnumber() {
+        return sourcedocumentid_documentnumber;
+    }
+
+    public void setSourcedocumentid_documentnumber(Integer sourcedocumentid_documentnumber) {
+        this.sourcedocumentid_documentnumber = sourcedocumentid_documentnumber;
+    }
+
+    public Integer getSourcedocumentid_documenttype() {
+        return sourcedocumentid_documenttype;
+    }
+
+    public void setSourcedocumentid_documenttype(Integer sourcedocumentid_documenttype) {
+        this.sourcedocumentid_documenttype = sourcedocumentid_documenttype;
+    }
+
+    public Integer getUserdocumentid_documentnumber() {
+        return userdocumentid_documentnumber;
+    }
+
+    public void setUserdocumentid_documentnumber(Integer userdocumentid_documentnumber) {
+        this.userdocumentid_documentnumber = userdocumentid_documentnumber;
+    }
+
+    public Integer getUserdocumentid_documenttype() {
+        return userdocumentid_documenttype;
+    }
+
+    public void setUserdocumentid_documenttype(Integer userdocumentid_documenttype) {
+        this.userdocumentid_documenttype = userdocumentid_documenttype;
+    }
+
     @Override
     public String toString() {
-        return "Transfers{" + "idtransaction=" + idtransaction + ", subtransactiontypeid=" + subtransactiontypeid + ", currencyid=" + currencyid + ", valuedate=" + valuedate + ", transactiontypeid=" + transactiontypeid + ", transactionstatusid=" + transactionstatusid + ", clientbankidentifier=" + clientbankidentifier + ", debitproductbankidentifier=" + debitproductbankidentifier + ", debitproducttypeid=" + debitproducttypeid + ", debitcurrencyid=" + debitcurrencyid + ", creditproductbankidentifier=" + creditproductbankidentifier + ", creditproducttypeid=" + creditproducttypeid + ", creditcurrencyid=" + creditcurrencyid + ", amount=" + amount + ", notifyto=" + notifyto + ", notificationchannelid=" + notificationchannelid + ", transactionid=" + transactionid + ", destinationname=" + destinationname + ", destinationbank=" + destinationbank + ", description=" + description + ", bankroutingnumber=" + bankroutingnumber + ", sourcename=" + sourcename + ", sourcebank=" + sourcebank + ", regulationamountexceeded=" + regulationamountexceeded + ", sourcefunds=" + sourcefunds + ", destinationfunds=" + destinationfunds + ", transactioncost=" + transactioncost + ", transactioncostcurrencyid=" + transactioncostcurrencyid + ", exchangerate=" + exchangerate + ", fechaejecucion=" + fechaejecucion + '}';
+        return "Transferencias{" + "idtransaction=" + idtransaction + ", subtransactiontypeid=" + subtransactiontypeid + ", currencyid=" + currencyid + ", valuedate=" + valuedate + ", transactiontypeid=" + transactiontypeid + ", transactionstatusid=" + transactionstatusid + ", clientbankidentifier=" + clientbankidentifier + ", debitproductbankidentifier=" + debitproductbankidentifier + ", debitproducttypeid=" + debitproducttypeid + ", debitcurrencyid=" + debitcurrencyid + ", creditproductbankidentifier=" + creditproductbankidentifier + ", creditproducttypeid=" + creditproducttypeid + ", creditcurrencyid=" + creditcurrencyid + ", amount=" + amount + ", notifyto=" + notifyto + ", notificationchannelid=" + notificationchannelid + ", transactionid=" + transactionid + ", destinationname=" + destinationname + ", destinationbank=" + destinationbank + ", description=" + description + ", bankroutingnumber=" + bankroutingnumber + ", sourcename=" + sourcename + ", sourcebank=" + sourcebank + ", regulationamountexceeded=" + regulationamountexceeded + ", sourcefunds=" + sourcefunds + ", destinationfunds=" + destinationfunds + ", transactioncost=" + transactioncost + ", transactioncostcurrencyid=" + transactioncostcurrencyid + ", exchangerate=" + exchangerate + ", fechaejecucion=" + fechaejecucion + ", destinationdocumentid_documentnumber=" + destinationdocumentid_documentnumber + ", destinationdocumentid_documenttype=" + destinationdocumentid_documenttype + ", sourcedocumentid_documentnumber=" + sourcedocumentid_documentnumber + ", sourcedocumentid_documenttype=" + sourcedocumentid_documenttype + ", userdocumentid_documentnumber=" + userdocumentid_documentnumber + ", userdocumentid_documenttype=" + userdocumentid_documenttype + '}';
     }
-     
-    
+
     
 }

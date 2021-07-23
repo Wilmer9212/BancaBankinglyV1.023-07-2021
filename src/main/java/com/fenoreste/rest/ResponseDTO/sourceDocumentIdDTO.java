@@ -13,16 +13,14 @@ public class sourceDocumentIdDTO {
     
         
     private String integrationProperties;
-    private String documentNumber;
-    private String documentType;
+    private Integer documentNumber=0;
+    private Integer documentType=0;
 
     public sourceDocumentIdDTO() {
     }
 
-    public sourceDocumentIdDTO(String integrationProperties, String documentNumber, String documentType) {
+    public sourceDocumentIdDTO(String integrationProperties) {
         this.integrationProperties = integrationProperties;
-        this.documentNumber = documentNumber;
-        this.documentType = documentType;
     }
 
     public String getIntegrationProperties() {
@@ -33,25 +31,22 @@ public class sourceDocumentIdDTO {
         this.integrationProperties = integrationProperties;
     }
 
-    public String getDocumentNumber() {
+    public Integer getDocumentNumber() {
         return documentNumber;
     }
 
-    public void setDocumentNumber(String documentNumber) {
+    public void setDocumentNumber(Integer documentNumber) {
         this.documentNumber = documentNumber;
     }
 
-    public String getDocumentType() {
+    public Integer getDocumentType() {
         return documentType;
     }
 
-    public void setDocumentType(String documentType) {
+    public void setDocumentType(Integer documentType) {
         this.documentType = documentType;
     }
-
-    @Override
-    public String toString() {
-        return "destinationDocumentIdDTO{" + "integrationProperties=" + integrationProperties + ", documentNumber=" + documentNumber + ", documentType=" + documentType + '}';
-    }
+    
+    
     
 }
