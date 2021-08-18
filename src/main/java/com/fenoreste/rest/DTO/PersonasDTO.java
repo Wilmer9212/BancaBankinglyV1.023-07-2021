@@ -3,132 +3,83 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.fenoreste.rest.entidades;
+package com.fenoreste.rest.DTO;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Date;
-import java.util.Objects;
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
+
 /**
  *
- * @author Elliot
+ * @author wilmer
  */
-@Cacheable(false)
-@Entity
-@Table(name = "personas")
-public class Persona{
+public class PersonasDTO {
     
-    
-    @JsonIgnore
-    
-    @EmbeddedId
-    protected PersonasPK personasPK;
-    @Column(name = "calle")
+    private int idorigen;
+    private int idgrupo;
+    private int idsocio;
     private String calle;
-    @Column(name = "numeroext")
     private String numeroext;
-    @Column(name = "numeroint")
     private String numeroint;
-    @Column(name = "entrecalles")
     private String entrecalles;
-    @Column(name = "fechanacimiento")
-    @Temporal(TemporalType.DATE)
     private Date fechanacimiento;
-    @Column(name = "lugarnacimiento")
     private String lugarnacimiento;
-    @Column(name = "efnacimiento")
     private Integer efnacimiento;
-    @Column(name = "sexo")
     private Short sexo;
-    @Column(name = "telefono")
     private String telefono;
-    @Column(name = "telefonorecados")
     private String telefonorecados;
-    @Column(name = "listanegra")
     private Boolean listanegra;
-    @Column(name = "estadocivil")
     private Short estadocivil;
-    @Column(name = "idcoop")
     private String idcoop;
-    @Column(name = "idsector")
     private Integer idsector;
-    @Column(name = "estatus")
     private Boolean estatus;
-    @Column(name = "aceptado")
     private Boolean aceptado;
-    @Column(name = "fechaingreso")
-    @Temporal(TemporalType.DATE)
     private Date fechaingreso;
-    @Column(name = "fecharetiro")
-    @Temporal(TemporalType.DATE)
     private Date fecharetiro;
-    @Column(name = "fechaciudad")
-    @Temporal(TemporalType.DATE)
     private Date fechaciudad;
-    @Column(name = "regimen_mat")
     private Short regimenMat;
-    @Column(name = "nombre")
     private String nombre;
-    @Column(name = "medio_inf")
     private Short medioInf;
-    @Column(name = "requisitos")
     private Integer requisitos;
-    @Column(name = "appaterno")
     private String appaterno;
-    @Column(name = "apmaterno")
     private String apmaterno;
-    @Column(name = "nacionalidad")
     private Short nacionalidad;
-    @Column(name = "grado_estudios")
     private Short gradoEstudios;
-    @Column(name = "categoria")
     private Short categoria;
-    @Column(name = "rfc")
     private String rfc;
-    @Column(name = "curp")
     private String curp;
-    @Column(name = "email")
     private String email;
-    @Column(name = "razon_social")
     private String razonSocial;
-    @Column(name = "causa_baja")
     private Integer causaBaja;
-    @Column(name = "nivel_riesgo")
     private Short nivelRiesgo;
-    @Column(name = "celular")
     private String celular;
-    @Column(name = "rfc_valido")
     private Boolean rfcValido;
-    @Column(name = "curp_valido")
     private Boolean curpValido;
-    @Column(name = "idcolonia")
     private Integer idcolonia;
-    
-    
-    public Persona() {
-        
-    }
-    
-    public Persona(PersonasPK personasPK) {
-        this.personasPK = personasPK;
+
+    public PersonasDTO() {
     }
 
-    public Persona(int idorigen, int idgrupo, int idsocio) {
-        this.personasPK = new PersonasPK(idorigen, idgrupo, idsocio);
+    public int getIdorigen() {
+        return idorigen;
     }
 
-    public PersonasPK getPersonasPK() {
-        return personasPK;
+    public void setIdorigen(int idorigen) {
+        this.idorigen = idorigen;
     }
 
-    public void setPersonasPK(PersonasPK personasPK) {
-        this.personasPK = personasPK;
+    public int getIdgrupo() {
+        return idgrupo;
+    }
+
+    public void setIdgrupo(int idgrupo) {
+        this.idgrupo = idgrupo;
+    }
+
+    public int getIdsocio() {
+        return idsocio;
+    }
+
+    public void setIdsocio(int idsocio) {
+        this.idsocio = idsocio;
     }
 
     public String getCalle() {
@@ -315,8 +266,7 @@ public class Persona{
         this.requisitos = requisitos;
     }
 
-    public String getAppaterno(){
-        System.out.println("app:"+appaterno);
+    public String getAppaterno() {
         return appaterno;
     }
 
@@ -435,32 +385,7 @@ public class Persona{
     public void setIdcolonia(Integer idcolonia) {
         this.idcolonia = idcolonia;
     }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 37 * hash + Objects.hashCode(this.personasPK);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Persona other = (Persona) obj;
-        return Objects.equals(this.personasPK, other.personasPK);
-    }
-
-    @Override
-    public String toString() {
-        return "Personas{" + "personasPK=" + personasPK + ", calle=" + calle + ", numeroext=" + numeroext + ", numeroint=" + numeroint + ", entrecalles=" + entrecalles + ", fechanacimiento=" + fechanacimiento + ", lugarnacimiento=" + lugarnacimiento + ", efnacimiento=" + efnacimiento + ", sexo=" + sexo + ", telefono=" + telefono + ", telefonorecados=" + telefonorecados + ", listanegra=" + listanegra + ", estadocivil=" + estadocivil + ", idcoop=" + idcoop + ", idsector=" + idsector + ", estatus=" + estatus + ", aceptado=" + aceptado + ", fechaingreso=" + fechaingreso + ", fecharetiro=" + fecharetiro + ", fechaciudad=" + fechaciudad + ", regimenMat=" + regimenMat + ", nombre=" + nombre + ", medioInf=" + medioInf + ", requisitos=" + requisitos + ", appaterno=" + appaterno + ", apmaterno=" + apmaterno + ", nacionalidad=" + nacionalidad + ", gradoEstudios=" + gradoEstudios + ", categoria=" + categoria + ", rfc=" + rfc + ", curp=" + curp + ", email=" + email + ", razonSocial=" + razonSocial + ", causaBaja=" + causaBaja + ", nivelRiesgo=" + nivelRiesgo + ", celular=" + celular + ", rfcValido=" + rfcValido + ", curpValido=" + curpValido + ", idcolonia=" + idcolonia + '}';
-    }
+    
+    
 
 }

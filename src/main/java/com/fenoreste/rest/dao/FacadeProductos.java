@@ -1,26 +1,41 @@
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.DTO.TablasDTO;
+import com.fenoreste.rest.ResponseDTO.ProductBankStatementDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.ResponseDTO.ProductsConsolidatePositionDTO;
 import com.fenoreste.rest.ResponseDTO.ProductsDTO;
+import com.fenoreste.rest.WsTDD.SaldoTddPK;
 import com.fenoreste.rest.WsTDD.TarjetaDeDebito;
 import com.fenoreste.rest.entidades.Auxiliares;
 import com.fenoreste.rest.entidades.Catalog_Status_Bankingly;
-import com.fenoreste.rest.entidades.CuentasBankingly;
+import com.fenoreste.rest.entidades.Productos_bankingly;
 import com.fenoreste.rest.entidades.Persona;
 import com.fenoreste.rest.entidades.PersonasPK;
 import com.fenoreste.rest.entidades.Productos;
 import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;
-import com.fenoreste.rest.entidades.WsFoliosTarjetasSyCPK1;
-import com.syc.services.SiscoopTDD;
+import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetas1;
+import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK1;
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
 import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -30,13 +45,16 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import javax.xml.namespace.QName;
+import wssyctdd.SiscoopTDD;
 
 public abstract class FacadeProductos<T> {
 
     private static EntityManagerFactory emf;
+    private final Date hoy = new Date();
 
     public FacadeProductos(Class<T> entityClass) {
         emf = AbstractFacade.conexion();
+        System.out.println("hoy:" + hoy);
     }
 
     public List<ProductsDTO> getProductos(String clientBankIdentifiers, Integer productTypes) {
@@ -45,7 +63,7 @@ public abstract class FacadeProductos<T> {
         String productTypeId = "", descripcion = "";
         try {
             String consulta = "";
-            CuentasBankingly ccb = null;
+            Productos_bankingly ccb = null;
             if (!clientBankIdentifiers.equals("") && productTypes != null) {
                 consulta = "SELECT * FROM auxiliares a INNER JOIN tipos_cuenta_bankingly pr USING(idproducto) WHERE replace((to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999')),' ','')='" + clientBankIdentifiers + "' AND (SELECT producttypeid FROM tipos_cuenta_bankingly cb WHERE a.idproducto=cb.idproducto)=" + productTypes + " AND a.estatus=2";
             } else if (!clientBankIdentifiers.equals("") && productTypes == null) {
@@ -60,7 +78,7 @@ public abstract class FacadeProductos<T> {
                 Auxiliares a = ListaA.get(i);
 
                 try {
-                    ccb = em.find(CuentasBankingly.class, a.getAuxiliaresPK().getIdproducto());
+                    ccb = em.find(Productos_bankingly.class, a.getAuxiliaresPK().getIdproducto());
                     productTypeId = String.valueOf(ccb.getProductTypeId());
                     descripcion = ccb.getDescripcion();
                 } catch (Exception e) {
@@ -120,47 +138,48 @@ public abstract class FacadeProductos<T> {
                         + " WHERE replace((to_char(idorigen,'099999')||to_char(idgrupo,'09')||to_char(idsocio,'099999')),' ','')='" + clientBankIdentifier
                         + "' AND replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')='" + productsBank.get(ii) + "' AND estatus=2";
                 System.out.println("consulta:" + consulta);
-                // try {
-                Query query = em.createNativeQuery(consulta, Auxiliares.class);
 
+                Query query = em.createNativeQuery(consulta, Auxiliares.class);
                 List<Auxiliares> listaA = new ArrayList<>();
                 listaA = query.getResultList();
+
                 boolean prA = false;
-                
                 //Identifico la caja para la TDD
                 Double saldo = 0.0;
-                TarjetaDeDebito serviciosTdd=new TarjetaDeDebito();
+                TarjetaDeDebito serviciosTdd = new TarjetaDeDebito();
                 for (int i = 0; i < listaA.size(); i++) {
                     Auxiliares a = listaA.get(i);
-                    WsFoliosTarjetasSyCPK1 saldoTddPK = new WsFoliosTarjetasSyCPK1(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());     
-                    saldo=Double.parseDouble(a.getSaldo().toString());
-                    try{
-                        System.out.println("entro:");
-                        Tablas tbp=serviciosTdd.productoParaTdd();
-                        if(Integer.parseInt(tbp.getDato1())==1 && Integer.parseInt(tbp.getDato2())==a.getAuxiliaresPK().getIdproducto()){
-                         System.out.println("saldoTDDPK:"+saldoTddPK);
-                        BalanceQueryResponseDto responseWs = serviciosTdd.saldoTDD(saldoTddPK);
-                        saldo = responseWs.getAvailableAmount();
-                        System.out.println("Saldo en Syc:"+saldo);                             
-                        }                       
-                        }catch(Exception e){
-                            System.out.println("Error en consultar tdd:"+e.getMessage());
-                        }
-                                      
-                    try {
-                        Query queryR = em.createNativeQuery("SELECT producttypeid FROM tipos_cuenta_bankingly WHERE idproducto=" + a.getAuxiliaresPK().getIdproducto());
-                        if (queryR != null) {
-                            productTypeId = String.valueOf(queryR.getSingleResult());
+                    WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
+                    WsSiscoopFoliosTarjetas1 tarjeta = em.find(WsSiscoopFoliosTarjetas1.class, foliosPK);
+                    saldo = Double.parseDouble(a.getSaldo().toString());
+                    if (caja().contains("SANNICOLAS")) {
+                        try {
+                            TablasDTO tablaDTO = serviciosTdd.productoTddwebservice();
+                            if (Integer.parseInt(tablaDTO.getDato2()) == a.getAuxiliaresPK().getIdproducto()) {
+                                saldo = 0.0;                                
+                                BalanceQueryResponseDto saldoWS = serviciosTdd.saldoTDD(foliosPK);
+                                if (saldoWS.getCode() == 1) {
+                                    saldo = saldoWS.getAvailableAmount();    
+                                    SaldoTddPK saldoTddPK = new SaldoTddPK(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
+                                    serviciosTdd.actualizarSaldoTDD(saldoTddPK,saldo);
+                                }
+                            }
+                        } catch (Exception e) {
+                            System.out.println("Error en consultar tdd:" + e.getMessage());
                         }
 
-                    } catch (Exception e) {
-                        productTypeId = "";
                     }
+
                     Productos pr = em.find(Productos.class, a.getAuxiliaresPK().getIdproducto());
                     String sai = "";
                     String vencimiento = "";
                     Double tasa = 0.0;
-                    CuentasBankingly ctb = em.find(CuentasBankingly.class, a.getAuxiliaresPK().getIdproducto());
+                    Productos_bankingly ctb = em.find(Productos_bankingly.class, a.getAuxiliaresPK().getIdproducto());
+                    int cpagadas = 0;
+                    Double totalam = 0.0;
+                    String vencep = "";
+                    
+                    //si es una inversion
                     if (ctb.getProductTypeId() == 4) {
                         try {
                             Query queryA = em.createNativeQuery("SELECT * FROM sai_auxiliar(" + a.getAuxiliaresPK().getIdorigenp() + ","
@@ -171,17 +190,12 @@ public abstract class FacadeProductos<T> {
                             List list = Arrays.asList(parts);
                             vencimiento = (String) list.get(2);
                             tasa = Double.parseDouble(a.getTasaio().toString());
-                            System.out.println("Vencimiento:" + vencimiento);
+
                         } catch (Exception e) {
                             System.out.println("Error en amor:" + e.getMessage());
                             prA = false;
                         }
-                    }
-
-                    int cpagadas = 0;
-                    Double totalam = 0.0;
-                    String vencep = "";
-                    if (ctb.getProductTypeId() == 5) {
+                    } else if (ctb.getProductTypeId() == 5) {//Si es un prestamo
                         String consulta1 = "SELECT count(*) FROM amortizaciones am WHERE idorigenp=" + a.getAuxiliaresPK().getIdorigenp()
                                 + " AND idproducto=" + a.getAuxiliaresPK().getIdproducto()
                                 + " AND idauxiliar=" + a.getAuxiliaresPK().getIdauxiliar()
@@ -209,22 +223,21 @@ public abstract class FacadeProductos<T> {
                         vencep = (String) list.get(10);
                         System.out.println("Vence:" + vencep);
                     }
-
                     PersonasPK pk = new PersonasPK(a.getIdorigen(), a.getIdgrupo(), a.getIdsocio());
                     Persona p = em.find(Persona.class, pk);
-
                     String nmsucursal = "";
+
                     try {
-                        Query queryO = em.createNativeQuery(
-                                "SELECT nombre FROM origenes WHERE idorigen=" + a.getAuxiliaresPK().getIdorigenp());
-                        nmsucursal = (String) queryO.getSingleResult();
+                        String consultaO = "SELECT nombre FROM origenes WHERE idorigen=" + a.getAuxiliaresPK().getIdorigenp();
+                        Query queryO = em.createNativeQuery(consultaO);
+                        nmsucursal = String.valueOf(queryO.getSingleResult());
                     } catch (Exception e) {
                         System.out.println("Error en buscar nombre de la sucursal:" + e.getMessage());
                     }
                     ProductsConsolidatePositionDTO dto = new ProductsConsolidatePositionDTO();
                     dto.setClientBankIdentifier(clientBankIdentifier);
                     dto.setProductBankIdentifier(productsBank.get(ii));
-                    dto.setProductTypeId(productTypeId);
+                    dto.setProductTypeId(String.valueOf(ctb.getProductTypeId()));
                     dto.setProductAlias(pr.getNombre());
                     dto.setProductNumber(String.valueOf(a.getAuxiliaresPK().getIdproducto()));
                     dto.setLocalCurrencyId(1);
@@ -244,156 +257,226 @@ public abstract class FacadeProductos<T> {
                     dto.setBackendId(1);
                     ListaReturn.add(dto);
                 }
-                System.out.println("Lista:" + ListaReturn);
-
             }
+            System.out.println("Lista:" + ListaReturn);
+
         } catch (Exception e) {
+            em.close();
             System.out.println("Error produucido:" + e.getMessage());
         } finally {
             em.close();
         }
-
         return ListaReturn;
 
     }
 
-    /*
-    public List<Object[]> getProductsRate(String customerId, int productCode, String accountType) {
+    public List<ProductBankStatementDTO> statements(String cliente, String productBankIdentifier, int productType) {
         EntityManager em = emf.createEntityManager();
-        Query query = null;
-        String consulta = "select (select tasaio from productos pr where pr.idproducto=a.idproducto),"
-                + "(select plazomax from productos pr where pr.idproducto=a.idproducto)as pm,"
-                + "20.00 as smin,"
-                + "(select pr.nombre from productos pr where pr.idproducto=a.idproducto)as nombre"
-                + " from auxiliares a where replace((to_char(a.idorigen,'099999')||to_char(idgrupo,'09')||to_char(idsocio,'099999')),' ','')='" + customerId + "' AND a.idproducto=" + productCode;//+" AND UPPER(pr.nombre) like '%"+accountType+"%'";
-        List<Object[]> lista = null;
+        List<ProductBankStatementDTO> listaEstadosDeCuenta = new ArrayList<>();
+        ProductBankStatementDTO estadoCuenta = new ProductBankStatementDTO();
         try {
-            query = em.createNativeQuery(consulta);
-            lista = query.getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
+            boolean ba = false;
+            try {
+                String BusquedaProducto = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + productBankIdentifier + "'"
+                        + " AND replace(to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999'),' ','')='" + cliente + "'";
+                System.out.println("Consulta:" + BusquedaProducto);
+                Query queryB = em.createNativeQuery(BusquedaProducto, Auxiliares.class);
+                Auxiliares a = (Auxiliares) queryB.getSingleResult();
+                if (a != null) {
+                    ba = true;
+                }
+            } catch (Exception e) {
+                System.out.println("El error al buscar auxiliar:" + e.getMessage());
+            }
+            if (ba) {
+                Query queryFIF = em.createNativeQuery("SELECT fecha_rango_inicio_final(2)");
+                String fechas = String.valueOf(queryFIF.getSingleResult());
+                String fechasJava[] = fechas.split("\\|");
+                System.out.println("fechas:" + fechas);
+                String fechaInicio = fechasJava[0];
+                String fechaFinal = fechasJava[1];
+
+                //Query queryFechas=em.createNativeQuery("SELECT sai_estado_cuenta_ahorros(30214,110,27917454,'01/02/2021','02/03/2021')");
+                File file = null;
+                //GeneratePDF();
+                try {
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+                    System.out.println("yyyy/MM/dd HH:mm:ss-> " + dtf.format(LocalDateTime.now()));
+                    //System.out.println("yyyy/MM/dd HH:mm:ss-> " +dtf.format((TemporalAccessor) str(fechaInicio.replace("-","/"))));
+                    file = crear_llenar_txt(productBankIdentifier, fechaInicio, fechaFinal, productType);
+                    System.out.println("paso:");
+                    //file=new File(ruta()+"e_cuenta_ahorro_0101010011000010667_2.txt");          
+                    System.out.println("fileNameTxt:" + file.getName());
+                    File fileTxt = new File(ruta() + file.getName());
+                    if (fileTxt.exists()) {
+                        File fileHTML = crear_llenar_html(fileTxt, fileTxt.getName().replace(".txt", ".html"));
+                        if (crearPDF(ruta(), fileHTML.getName())) {
+                            String pdf = ruta() + fileHTML.getName().replace(".html", "pdf");
+                            estadoCuenta.setProductBankIdentifier(dtf.format(LocalDateTime.now()));
+                            estadoCuenta.setProductBankIdentifier(productBankIdentifier);
+                            estadoCuenta.setProductBankStatementId(file.getName().replace(".txt", ""));
+                            estadoCuenta.setProductType(productType);
+                            estadoCuenta.setProductBankStatementDate(dtf.format(LocalDateTime.now()));
+                            listaEstadosDeCuenta.add(estadoCuenta);
+                            fileTxt.delete();
+                            fileHTML.delete();
+                        }
+                    }
+
+                    /*file=new File(ruta()+"test.txt");
+                    crear_llenar_html(file,"test.txt");
+                    crearPDF(ruta(),"test.html");
+                     */
+                } catch (Exception e) {
+                    em.close();
+                    System.out.println("Error en conver:" + e.getMessage());
+                }
+
+            }
+        } catch (Exception ex) {
+            em.close();
+            System.out.println("si");
         } finally {
-            em.clear();
-        }
-        return query.getResultList();
-    }
-     */
-    public List<Object[]> getProducts(String ogs, Integer tipoProducto) {
-        String s = "";
-        List<Object[]> lista = null;
-        EntityManager em = emf.createEntityManager();
-        Query query = null;
-        System.out.println("ogs: " + ogs + "\n" + "tipoProducto: " + tipoProducto.toString());
-        System.out.println("Accediendo a consulta...");
-        String consulta = "SELECT TRIM(TO_CHAR(idorigen,'099999'))||TRIM(TO_CHAR(idgrupo,'09'))||TRIM(TO_CHAR(idsocio,'099999')) as ogs, "
-                + "      TRIM(TO_CHAR(idorigenp,'099999'))||TRIM(TO_CHAR(idproducto,'09999'))||TRIM(TO_CHAR(idauxiliar,'09999999')) as opa, "
-                + "      idproducto, "
-                + "      (CASE WHEN estatus = 2 THEN 1 ELSE 0 END) as esatus, "
-                + "      (SELECT nombre FROM productos pr WHERE pr.idproducto = a.idproducto) as nombre "
-                + " FROM auxiliares a "
-                + "WHERE estatus = 2 "
-                + "  AND TRIM(TO_CHAR(idorigen,'099999'))||TRIM(TO_CHAR(idgrupo,'09'))||TRIM(TO_CHAR(idsocio,'099999')) = TRIM('" + ogs + "') "
-                + "  AND idproducto in (SELECT idproduc\\:\\:INTEGER "
-                + "                       FROM regexp_split_to_table((SELECT dato2 "
-                + "                                                     FROM tablas "
-                + "                                                    WHERE idtabla = 'bankingly' "
-                + "                                                      AND idelemento = '" + tipoProducto + "'), ',') AS idproduc);";
-
-        System.out.println("Consuuuuuuuuuuuuuuuuuuuulta: \n" + consulta);
-        /*
-        try {
-            // s = new String(consulta.getBytes(),"ISO-8859-1");
-            s =  new String(consulta.getBytes("ISO-8859-1"), "UTF-8");
-            System.out.println("si:" + s);
-        } catch (UnsupportedEncodingException ex) {
-            Logger.getLogger(FacadeProductos.class.getName()).log(Level.SEVERE, null, ex);
-        }
-         */
-        try {
-            // query = em.createNativeQuery(s);
-            query = em.createNativeQuery(consulta);
-            lista = query.getResultList();
-            System.out.println("Resultados obtenidos: " + lista);
-        } catch (Exception e) {
-            em.clear();
-            em.close();
-            System.out.println("No pudo obtener datos \n Error: " + e.getMessage());
-        } finally {
-            em.clear();
             em.close();
         }
-        // return query.getResultList();
-        return lista;
-    }
-
-    public List<Object[]> getProductsConsoli(String ogs, String opa) {
-        String s = "";
-        List<Object[]> lista = null;
-        EntityManager em = emf.createEntityManager();
-        Query query = null;
-        System.out.println("ogs: " + ogs + "\n" + "opa: " + opa);
-
-        String consulta = "SELECT TRIM(TO_CHAR(a.idorigen,'099999'))||TRIM(TO_CHAR(a.idgrupo,'09'))||TRIM(TO_CHAR(a.idsocio,'099999')) as ogs, "
-                + "      TRIM(TO_CHAR(a.idorigenp,'099999'))||TRIM(TO_CHAR(a.idproducto,'09999'))||TRIM(TO_CHAR(a.idauxiliar,'09999999')) as opa, "
-                + "      (SELECT idelemento FROM (SELECT * FROM (SELECT regexp_split_to_table(dato2,',') AS product, "
-                + "                                                     idelemento "
-                + "                                                FROM tablas "
-                + "                                               WHERE idtabla = 'bankingly' "
-                + "                                                 AND dato1 = 'lista_productos') AS pro "
-                + "                                WHERE TRIM(product) is not null AND TRIM(product) <> '') AS pr "
-                + "        WHERE product::INTEGER = (select dato from prueba)) AS ProductTypeId, "
-                + "      pr.nombre, "
-                + "      a.idproducto, "
-                + "      a.saldo, "
-                + "      (case when tipoproducto in (0,1,8) and tasaiod is null and tasaim is null then tasaio else 0 end) as tasa, "
-                + "      (case when tipoproducto in (1,8) then date(fechaactivacion + (plazo||' month'||\\:\\:interval)) else '01/01/1999' end) as fecha_vence, "
-                + "      a.plazo, "
-                + "      a.fechaactivacion, "
-                + "      pr.tipoproducto, "
-                + "      (SELECT count(*) FROM amortizaciones am WHERE am.idorigenp = a.idorigenp AND am.idproducto = a.idproducto AND am.idauxiliar = a.idauxiliar AND am.todopag = TRUE) AS pagos_realizados, "
-                + "      (SELECT count(*) FROM amortizaciones am WHERE am.idorigenp = a.idorigenp AND am.idproducto = a.idproducto AND am.idauxiliar = a.idauxiliar) AS totales_mensualidades, "
-                + "      (SELECT count(*) FROM amortizaciones am WHERE am.idorigenp = a.idorigenp AND am.idproducto = a.idproducto AND am.idauxiliar = a.idauxiliar AND am.) AS pox_pag, "
-                + "      (SELECT o.nombre FROM origenes o WHERE o.idorigen = a.idorigenp) AS sucursal, "
-                + "      (SELECT p.nombre||' '||p.appaterno||' '||p.apmaterno FROM personas p WHERE p.idorigen = a.idorigen AND p.idgrupo = a.idgrupo AND p.idsocio = a.idsocio) as socio,  "
-                + "      (SELECT su.nombre from origenes su where su.idorigen = a.idorigenp) as sucursal "
-                + " FROM auxiliares a "
-                + " INNER JOIN productos pr USING(idproducto) "
-                + "WHERE a.estatus = 2 "
-                + "  AND TRIM(TO_CHAR(a.idorigen,'099999'))||TRIM(TO_CHAR(a.idgrupo,'09'))||TRIM(TO_CHAR(a.idsocio,'099999')) = TRIM('" + ogs + "') "
-                + "  AND TRIM(TO_CHAR(a.idorigenp,'099999'))||TRIM(TO_CHAR(a.idproducto,'09999'))||TRIM(TO_CHAR(a.idauxiliar,'09999999')) = TRIM('" + opa + "'); ";
-
-        System.out.println("Consuuuuuuuuuuuuuuuuuuuulta: \n" + consulta);
-
-        try {
-            // query = em.createNativeQuery(s);
-            query = em.createNativeQuery(consulta);
-            lista = query.getResultList();
-            System.out.println("Resultados obtenidos: " + lista);
-        } catch (Exception e) {
-            em.clear();
-            em.close();
-            System.out.println("No pudo obtener datos \n Error: " + e.getMessage());
-        } finally {
-            em.clear();
-            em.close();
-        }
-        // return query.getResultList();
-        return lista;
+        System.out.println("ListaECuenta:" + listaEstadosDeCuenta);
+        return listaEstadosDeCuenta;
     }
 
-    public static Date stringTodate(String fecha) {
+    //Creamos y lleanamos un PDF
+    public File crear_llenar_txt(String opa, String FInicio, String FFinal, int tipoproducto) {
+        int numeroAleatorio = (int) (Math.random() * 9 + 1);
+        String NProducto = "";
+        if (tipoproducto == 1) {
+            NProducto = "e_cuenta_ahorros";
+        } else if (tipoproducto == 5) {
+            NProducto = "e_cuenta_prestamos";
+        } else if (tipoproducto == 4) {
+            NProducto = "e_cuenta_dpfs_ind";
+        }
+
+        String nombre_txt = NProducto + "-" + FInicio.replace("-", "") + "" + FFinal.replace("/", "") + String.valueOf(numeroAleatorio) + ".txt";
+        System.out.println("nombreTxt:" + nombre_txt);
+        EntityManager em = emf.createEntityManager();
+        File file = null;
+        try {
+            String o = opa.substring(0, 6);
+            String p = opa.substring(6, 11);
+            String a = opa.substring(11, 19);
+            String fichero_txt = ruta() + nombre_txt;
+            String contenido;
+
+            String consulta = "SELECT sai_estado_" + NProducto.replace("e_", "") + "(" + o + "," + p + "," + a + ",'" + FInicio.replace("-", "/") + "','" + FFinal + "')";
+            System.out.println("Consulta Statements:" + consulta);
+            Query query = em.createNativeQuery(consulta);
+            contenido = String.valueOf(query.getSingleResult());
+            file = new File(fichero_txt);
+            // Si el archivo no existe es creado
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            FileWriter fw = new FileWriter(file);
+            BufferedWriter bw = new BufferedWriter(fw);
+
+            bw.write(contenido);
+            bw.close();
+        } catch (Exception e) {
+            em.close();
+        } finally {
+            em.close();
+        }
+        return file;
+    }
+
+    //Creamos y llenamos el HTML
+    public File crear_llenar_html(File file, String nombre) throws FileNotFoundException {
+        String nombre_html = nombre;//=nombre_txt.replace(".txt",".html");
+        String html = ruta() + nombre_html.replace(".txt", ".html");
+        File fi = new File(html);
+        FileOutputStream fs = new FileOutputStream(fi);
+        OutputStreamWriter out = new OutputStreamWriter(fs);
+        try {
+            FileReader fr = new FileReader(file);
+            BufferedReader br = new BufferedReader(fr);
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                System.out.println("linea-------: " + linea);
+                if (linea.contains("usr/local/saicoop")) {
+                    System.out.println("lineaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:" + linea);
+                }
+                if (linea.contains("/usr/local/saicoop/img_estado_cuenta_ahorros/")) {
+                    String cade = ruta();
+                    System.out.println("Cade:" + cade.replace("\\", "/"));
+                    linea = linea.replace("/usr/local/saicoop/img_estado_cuenta_ahorros/", cade.replace("\\", "/"));
+                }
+                if (linea.contains(" & ")) {
+                    System.out.println("si tele");
+                    linea = linea.replace(" & ", " y ");
+                }
+                out.write(linea);
+
+            }
+            out.close();
+        } catch (Exception e) {
+            System.out.println("Excepcion leyendo txt" + ": " + e.getMessage());
+        }
+        return fi;
+    }
+
+    public boolean crearPDF(String ruta, String nombreDelHTMLAConvertir) {
+        try {
+            //ruta donde esta el html a convertir
+            String ficheroHTML = ruta + nombreDelHTMLAConvertir;
+
+            String url = new File(ficheroHTML).toURI().toURL().toString();
+            System.out.println("url:" + url);
+            //ruta donde se almacenara el pdf y que nombre se le data
+            String ficheroPDF = ruta + nombreDelHTMLAConvertir.replace(".html", ".pdf");
+            /* OutputStream os = new FileOutputStream(ficheroPDF);
+            ITextRenderer renderer = new ITextRenderer();
+            renderer.setDocument(url);
+            renderer.layout();
+            renderer.createPDF(os);
+            os.close();*/
+            File htmlSource = new File(ficheroHTML);
+            File pdfDest = new File(ficheroPDF);
+            // pdfHTML specific code
+            ConverterProperties converterProperties = new ConverterProperties();
+
+            HtmlConverter.convertToPdf(new FileInputStream(htmlSource), new FileOutputStream(pdfDest), converterProperties);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al crear PDF:" + e.getMessage());
+            return false;
+        }
+
+    }
+
+    //Parao obtener la ruta del servidor
+    public static String ruta() {
+        String home = System.getProperty("user.home");
+        String separador = System.getProperty("file.separator");
+        String actualRuta = home + separador + "Banca" + separador;
+        return actualRuta;
+    }
+
+    public static Date str(String fecha) {
         Date date = null;
         try {
-            SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
+            System.out.println("fecha:" + fecha);
+            SimpleDateFormat formato = new SimpleDateFormat("yyyy/MM/dd");
             date = formato.parse(fecha);
-        } catch (ParseException ex) {
+            System.out.println("sisisi:" + date.toString());
+        } catch (Exception ex) {
             System.out.println("Error al convertir fecha:" + ex.getMessage());
         }
         System.out.println("date:" + date);
         return date;
     }
 
-    /*========================================================================
+    /*========================================================================================================================*/
+
+ /*========================================================================
                Servicios S&C
     ========++++++=++++++++++++++++++++++++++++++++++++++++++++++++==+++++++=*/
     public BalanceQueryResponseDto balanceQuery(String pan) {
@@ -401,7 +484,8 @@ public abstract class FacadeProductos<T> {
         double saldo;
         try {
             TablasPK pk = new TablasPK("siscoop_banca_movil", "wsdl_parametros");
-            Tablas tb = em.find(Tablas.class, pk);
+            Tablas tb = em.find(Tablas.class,
+                    pk);
             if (authSyC(tb.getDato1(), tb.getDato2())) {
                 SiscoopTDD tdd = new SiscoopTDD(tb.getDato1(), tb.getDato2());
                 BalanceQueryResponseDto dto = tdd.getSiscoop().getBalanceQuery(pan);
@@ -454,7 +538,8 @@ public abstract class FacadeProductos<T> {
 
         EntityManager em = emf.createEntityManager();
         TablasPK tablasPK = new TablasPK("siscoop_banca_movil", "wsdl");
-        Tablas tb = em.find(Tablas.class, tablasPK);
+        Tablas tb = em.find(Tablas.class,
+                tablasPK);
         System.out.println("tablas encontrdas:" + tb);
         String wsdlLocation = "http://" + tb.getDato1() + ":" + tb.getDato3() + "/syc/webservice/" + tb.getDato2() + "?wsdl";
         System.out.println("wsdlLocation:" + wsdlLocation);
@@ -471,6 +556,26 @@ public abstract class FacadeProductos<T> {
             bandera = false;
         }
         return false;
+    }
+
+     public String caja() {
+        EntityManager em = emf.createEntityManager();
+        String nombreOrigen = "";
+        try {
+            String consulta = "SELECT replace(nombre,' ','') FROM origenes WHERE matriz=0";
+            System.out.println("ConsultaOrigen:" + consulta);
+            Query query = em.createNativeQuery(consulta);
+            nombreOrigen = String.valueOf(query.getSingleResult());
+        } catch (Exception e) {
+            em.clear();
+            em.close();
+            System.out.println("Error al crear origen trabajando:" + e.getMessage());
+            return "";
+        } finally {
+            em.clear();
+            em.close();
+        }
+        return nombreOrigen.replace(" ", "").toUpperCase();
     }
 
     public void cerrar() {

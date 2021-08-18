@@ -19,7 +19,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "tipos_cuenta_bankingly")
-public class CuentasBankingly implements Serializable{
+public class Productos_bankingly implements Serializable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idproducto")
@@ -30,10 +30,10 @@ public class CuentasBankingly implements Serializable{
     private String descripcion;
     @Column(name="producttypeid")
     private Integer productTypeId;
-    public CuentasBankingly() {
+    public Productos_bankingly() {
     }
 
-    public CuentasBankingly(Integer productTypeId, String productTypeName, String descripcion, Integer idproducto) {
+    public Productos_bankingly(Integer productTypeId, String productTypeName, String descripcion, Integer idproducto) {
         this.productTypeId = productTypeId;
         this.productTypeName = productTypeName;
         this.descripcion = descripcion;

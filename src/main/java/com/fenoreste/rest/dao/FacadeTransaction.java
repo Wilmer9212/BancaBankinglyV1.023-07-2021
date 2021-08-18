@@ -5,18 +5,32 @@
  */
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.DTO.TablasDTO;
 import com.fenoreste.rest.ResponseDTO.BackendOperationResultDTO;
 import com.fenoreste.rest.ResponseDTO.TransactionToOwnAccountsDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
+import com.fenoreste.rest.WsTDD.TarjetaDeDebito;
+import static com.fenoreste.rest.dao.FacadeProductos.ruta;
 import com.fenoreste.rest.entidades.Auxiliares;
-import com.fenoreste.rest.entidades.CuentasBankingly;
+import com.fenoreste.rest.entidades.Productos_bankingly;
 import com.fenoreste.rest.entidades.Origenes;
 import com.fenoreste.rest.entidades.Productos;
 import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;
 import com.fenoreste.rest.entidades.Transferencias;
+import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetas1;
+import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK1;
 import com.github.cliftonlabs.json_simple.JsonObject;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
+import com.syc.ws.endpoint.siscoop.DoWithdrawalAccountResponse;
+import com.syc.ws.endpoint.siscoop.LoadBalanceResponse;
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -26,16 +40,8 @@ import java.util.Date;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
-import static javax.ws.rs.client.Entity.json;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONObject;
 
 /**
  *
@@ -44,6 +50,7 @@ import org.json.JSONObject;
 public abstract class FacadeTransaction<T> {
 
     EntityManagerFactory emf;
+    TarjetaDeDebito WSTDD = new TarjetaDeDebito();
 
     public FacadeTransaction(Class<T> entityClass) {
         emf = AbstractFacade.conexion();
@@ -61,26 +68,107 @@ public abstract class FacadeTransaction<T> {
         backendResponse.setBackendReference(null);
         backendResponse.setIsError(true);
         backendResponse.setTransactionIdenty("0");
-        //Si es una trasnferencia entre mis cuentas
-        if (identificadorTransferencia == 1) {
+        int idorigenp = Integer.parseInt(transactionOWN.getDebitProductBankIdentifier().substring(1, 6));
+        int idproducto = Integer.parseInt(transactionOWN.getDebitProductBankIdentifier().substring(6, 11));
+        int idauxiliar = Integer.parseInt(transactionOWN.getDebitProductBankIdentifier().substring(11, 19));
+
+        System.out.println("" + idorigenp + "-" + idproducto + idauxiliar);
+
+        boolean retiro = false;
+        boolean bandera = false;
+        //Identifico la caja que esta usando los WS 
+        String mss = "";
+
+        if (caja().contains("SANNICOLAS")) {
+            try {
+                LoadBalanceResponse.Return loadBalanceResponse = new LoadBalanceResponse.Return();
+                TablasDTO tablaProductoTDD = WSTDD.productoTddwebservice();
+                System.out.println("ProductoTDD:" + tablaProductoTDD.getDato2());
+
+                if (Integer.parseInt(tablaProductoTDD.getDato2()) == idproducto) {
+                    bandera = true;
+                    WsSiscoopFoliosTarjetas1 tarjetas = WSTDD.buscaTarjetaTDD(idorigenp, idproducto, idauxiliar);
+                    System.out.println("Tarjeta Siscoop:" + WSTDD);
+                    DoWithdrawalAccountResponse.Return doWithdrawalAccountResponse = new DoWithdrawalAccountResponse.Return();
+                    if (tarjetas.getWsSiscoopFoliosTarjetasPK() != null) {
+                        if (tarjetas.getActiva()) {
+                            try {
+                                //Buscamos el saldo de la tarjeta tdd al WS
+                                String message = "";
+                                if (identificadorTransferencia == 1) {
+                                    message = validarTransferenciaEntreMisCuentas(transactionOWN.getDebitProductBankIdentifier(),
+                                            transactionOWN.getAmount(),
+                                            transactionOWN.getDebitProductBankIdentifier(),
+                                            transactionOWN.getClientBankIdentifier());
+                                    System.out.println("Message:" + message);
+                                }
+                                if (identificadorTransferencia == 2) {
+                                    message = validarTransferenciaATerceros(transactionOWN.getDebitProductBankIdentifier(),
+                                            transactionOWN.getAmount(),
+                                            transactionOWN.getDebitProductBankIdentifier(),
+                                            transactionOWN.getClientBankIdentifier());
+                                    System.out.println("Message:" + message);
+                                }
+                                if (identificadorTransferencia == 3) {
+                                    message = validarPagoAPrestamos(transactionOWN.getDebitProductBankIdentifier(),
+                                            transactionOWN.getAmount(),
+                                            transactionOWN.getDebitProductBankIdentifier(),
+                                            transactionOWN.getClientBankIdentifier());
+                                    System.out.println("Message:" + message);
+                                }
+
+                                if (message.toUpperCase().contains("EXITO")) {
+                                    doWithdrawalAccountResponse = WSTDD.retiroTDD(tarjetas, transactionOWN.getAmount());
+                                    //doWithdrawalAccountResponse.setCode(1);
+                                    if (doWithdrawalAccountResponse.getCode() == 0) {
+                                        mss = "ERROR AL PROCESAR RETIRO DE WSTDD";
+                                        //Existe Error
+                                        retiro = false;
+
+                                    } else {
+                                        retiro = true;
+                                        mss = "VALIDADO CON EXITO";
+                                    }
+                                } else {
+                                    mss = message;
+                                    retiro = false;
+                                }
+
+                            } catch (Exception e) {
+                                System.out.println("Error al validar:" + e.getMessage());
+                            }
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                System.out.println("Error producido en buscar tjeta:" + e.getMessage());
+
+            }
+
+        }
+        backendResponse.setBackendMessage(mss);
+
+        //Si es una transferencia entre mis cuentas
+        if (identificadorTransferencia == 1 & retiro == false & bandera == false) {
             //Valido la trasnferencia y devuelvo el mensaje que se produce
-            String messageBackend = TransferenciaEntreMisCuentas(transactionOWN.getDebitProductBankIdentifier(), transactionOWN.getAmount(), transactionOWN.getCreditProductBankIdentifier());
+            String messageBackend = validarTransferenciaEntreMisCuentas(transactionOWN.getDebitProductBankIdentifier(), transactionOWN.getAmount(), transactionOWN.getCreditProductBankIdentifier(), transactionOWN.getClientBankIdentifier());
             backendResponse.setBackendMessage(messageBackend);
         }
         //Si es una transferencia terceros dentro de la entidad
-        if (identificadorTransferencia == 2) {
-            String messageBackend = TransferenciaATerceros(transactionOWN.getDebitProductBankIdentifier(), transactionOWN.getAmount(), transactionOWN.getCreditProductBankIdentifier());
+        if (identificadorTransferencia == 2 & retiro == false & bandera == false) {
+            String messageBackend = validarTransferenciaATerceros(transactionOWN.getDebitProductBankIdentifier(), transactionOWN.getAmount(), transactionOWN.getCreditProductBankIdentifier(), transactionOWN.getClientBankIdentifier());
             backendResponse.setBackendMessage(messageBackend);
         }
         //Si es pago a un prestamo
-        if (identificadorTransferencia == 3) {
-            String backendMessage = PagoAPrestamos(transactionOWN.getDebitProductBankIdentifier(), transactionOWN.getAmount(), transactionOWN.getCreditProductBankIdentifier());
+        if (identificadorTransferencia == 3 & retiro == false & bandera == false) {
+            String backendMessage = validarPagoAPrestamos(transactionOWN.getDebitProductBankIdentifier(), transactionOWN.getAmount(), transactionOWN.getCreditProductBankIdentifier(), transactionOWN.getClientBankIdentifier());
             backendResponse.setBackendMessage(backendMessage);
         }
-        System.out.println("BackendMessage:" + backendResponse.getBackendMessage());
+        System.out.println("backendMessage:" + backendResponse.getBackendMessage());
         try {
-
             if (backendResponse.getBackendMessage().toUpperCase().contains("EXITO")) {
+                System.out.println("Aqui");
                 Transferencias transaction = new Transferencias();
                 transaction.setSubtransactiontypeid(transactionOWN.getSubTransactionTypeId());
                 transaction.setCurrencyid(transactionOWN.getCurrencyId());
@@ -119,83 +207,125 @@ public abstract class FacadeTransaction<T> {
                 transaction.setFechaejecucion(hoy);
                 int rowsUpdated = 0;
                 int rowsUpdated2 = 0;
+                boolean banderaEstatusTransferencia = false;
                 if (identificadorTransferencia == 1) {
+                    System.out.println("Si");
                     try {
-                        em.getTransaction().begin();
-                        rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
-                                + "(SELECT saldo FROM auxiliares WHERE "
-                                + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "')-" + transaction.getAmount()
-                                + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "'").executeUpdate();
-                        if (rowsUpdated > 0) {
-                            rowsUpdated2 = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                        System.out.println("Retirooooo:" + retiro);
+                        if (retiro) {
+                            System.out.println("Entro a descontar saldos");
+                            em.getTransaction().begin();
+                            rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
                                     + "(SELECT saldo FROM auxiliares WHERE "
                                     + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "')+" + transaction.getAmount()
-                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'").executeUpdate();
-                            if (rowsUpdated2 > 0) {
-                                em.persist(transaction);
-                                backendResponse.setBackendCode("1");
-                                backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
-                                backendResponse.setIsError(false);
-                                backendResponse.setTransactionIdenty(transaction.getTransactionid().toString());
-                                backendResponse.setBackendMessage("TRANSACCION EXITOSA");
-                                backendResponse.setBackendReference(transaction.getTransactionid().toString());
+                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'")
+                                    .executeUpdate();
+                            if (rowsUpdated > 0) {
+                                banderaEstatusTransferencia = true;
+                            }
+                            em.getTransaction().commit();
+                        } else {//Si es producto normal
+                            em.getTransaction().begin();
+                            rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                                    + "(SELECT saldo FROM auxiliares WHERE "
+                                    + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "')-" + transaction.getAmount()
+                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "'").executeUpdate();
+                            em.getTransaction().commit();
+                            if (rowsUpdated > 0) {
+                                em.getTransaction().begin();
+                                rowsUpdated2 = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                                        + "(SELECT saldo FROM auxiliares WHERE "
+                                        + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "')+" + transaction.getAmount()
+                                        + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'").executeUpdate();
                                 em.getTransaction().commit();
+                                if (rowsUpdated2 > 0) {
+                                    banderaEstatusTransferencia = true;
+                                }
                             }
                         }
+
                     } catch (Exception e) {
                         em.getTransaction().rollback();
-                        System.out.println("Error al procesarTransaccion:" + e.getMessage());
+                        System.out.println("Error al procesarTransaccion entre mis cuentas:" + e.getMessage());
                     }
                 }
                 if (identificadorTransferencia == 2) {
                     try {
-                        em.getTransaction().begin();
-                        rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
-                                + "(SELECT saldo FROM auxiliares WHERE "
-                                + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "')-" + transaction.getAmount()
-                                + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "'").executeUpdate();
-                        if (rowsUpdated > 0) {
-                            rowsUpdated2 = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                        if (retiro) {
+                            em.getTransaction().begin();
+                            rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
                                     + "(SELECT saldo FROM auxiliares WHERE "
                                     + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "')+" + transaction.getAmount()
-                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'").executeUpdate();
-                            if (rowsUpdated2 > 0) {
-                                em.persist(transaction);
-                                backendResponse.setBackendCode("1");
-                                backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
-                                backendResponse.setIsError(false);
-                                backendResponse.setTransactionIdenty(transaction.getTransactionid().toString());
-                                backendResponse.setBackendMessage("TRANSACCION EXITOSA");
-                                backendResponse.setBackendReference(transaction.getTransactionid().toString());
-                                em.getTransaction().commit();
+                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'")
+                                    .executeUpdate();
+                            if (rowsUpdated > 0) {
+                                banderaEstatusTransferencia = true;
+                            }
+                            em.getTransaction().commit();
+                        } else {
+                            em.getTransaction().begin();
+                            rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                                    + "(SELECT saldo FROM auxiliares WHERE "
+                                    + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "')-" + transaction.getAmount()
+                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "'").executeUpdate();
+                            if (rowsUpdated > 0) {
+                                rowsUpdated2 = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                                        + "(SELECT saldo FROM auxiliares WHERE "
+                                        + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "')+" + transaction.getAmount()
+                                        + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'").executeUpdate();
+                                if (rowsUpdated2 > 0) {
+                                    bandera = true;
+                                    /*em.persist(transaction);
+                                    backendResponse.setBackendCode("1");
+                                    backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
+                                    backendResponse.setIsError(false);
+                                    backendResponse.setTransactionIdenty(transaction.getTransactionid().toString());
+                                    backendResponse.setBackendMessage("TRANSACCION EXITOSA");
+                                    backendResponse.setBackendReference(transaction.getTransactionid().toString());
+                                    em.getTransaction().commit();*/
+                                }
                             }
                         }
                     } catch (Exception e) {
                         em.getTransaction().rollback();
-                        System.out.println("Error al procesarTransaccion:" + e.getMessage());
+                        System.out.println("Error al procesarTransaccion a terceros:" + e.getMessage());
                     }
                 }
                 if (identificadorTransferencia == 3) {
                     try {
-                        em.getTransaction().begin();
-                        rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
-                                + "(SELECT saldo FROM auxiliares WHERE "
-                                + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "')-" + transaction.getAmount()
-                                + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "'").executeUpdate();
-                        if (rowsUpdated > 0) {
-                            rowsUpdated2 = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                        if (retiro) {
+                            em.getTransaction().begin();
+                            rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
                                     + "(SELECT saldo FROM auxiliares WHERE "
                                     + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "')-" + transaction.getAmount()
-                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'").executeUpdate();
-                            if (rowsUpdated2 > 0) {
-                                em.persist(transaction);
-                                backendResponse.setBackendCode("1");
-                                backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
-                                backendResponse.setIsError(false);
-                                backendResponse.setTransactionIdenty(transaction.getTransactionid().toString());
-                                backendResponse.setBackendMessage("TRANSACCION EXITOSA");
-                                backendResponse.setBackendReference(transaction.getTransactionid().toString());
-                                em.getTransaction().commit();
+                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'")
+                                    .executeUpdate();
+                            if (rowsUpdated > 0) {
+                                banderaEstatusTransferencia = true;
+                            }
+                            em.getTransaction().commit();
+                        } else {
+                            em.getTransaction().begin();
+                            rowsUpdated = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                                    + "(SELECT saldo FROM auxiliares WHERE "
+                                    + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "')-" + transaction.getAmount()
+                                    + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getDebitproductbankidentifier() + "'").executeUpdate();
+                            if (rowsUpdated > 0) {
+                                rowsUpdated2 = em.createNativeQuery("UPDATE auxiliares a SET saldo="
+                                        + "(SELECT saldo FROM auxiliares WHERE "
+                                        + "replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "')-" + transaction.getAmount()
+                                        + " WHERE replace(to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999'),' ','')='" + transaction.getCreditproductbankidentifier() + "'").executeUpdate();
+                                if (rowsUpdated2 > 0) {
+                                    banderaEstatusTransferencia = true;
+                                    /*em.persist(transaction);
+                                    backendResponse.setBackendCode("1");
+                                    backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
+                                    backendResponse.setIsError(false);
+                                    backendResponse.setTransactionIdenty(transaction.getTransactionid().toString());
+                                    backendResponse.setBackendMessage("PAGO EXITOSO");
+                                    backendResponse.setBackendReference(transaction.getTransactionid().toString());
+                                    em.getTransaction().commit();*/
+                                }
                             }
                         }
                     } catch (Exception e) {
@@ -203,7 +333,18 @@ public abstract class FacadeTransaction<T> {
                         System.out.println("Error al procesarTransaccion:" + e.getMessage());
                     }
                 }
-                
+                if (banderaEstatusTransferencia) {
+                    em.getTransaction().begin();
+                    em.persist(transaction);
+                    backendResponse.setBackendCode("1");
+                    backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
+                    backendResponse.setIsError(false);
+                    backendResponse.setTransactionIdenty(transaction.getTransactionid().toString());
+                    backendResponse.setBackendMessage("TRANSACCION EXITOSA");
+                    backendResponse.setBackendReference(transaction.getTransactionid().toString());
+                    em.getTransaction().commit();
+                }
+
             }
         } catch (Exception e) {
             if (backendResponse.getBackendMessage().contains("EXITO")) {
@@ -216,45 +357,244 @@ public abstract class FacadeTransaction<T> {
         return backendResponse;
     }
 
-    //Metodo para validar transferencia entre cuentas propias
-    public String TransferenciaEntreMisCuentas(String opaOrigen, Double monto, String opaDestino) {
+    public String voucherFileCreate(String idtransaccion) {
         EntityManager em = emf.createEntityManager();
-        String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'";
+        try {
+            String cosulta = "SELECT * FROM transferencias_bankingly WHERE transactionid='" + idtransaccion + "'";
+            System.out.println("aqui:" + cosulta);
+            Query query = em.createNativeQuery(cosulta, Transferencias.class);
+            Transferencias transferencia = (Transferencias) query.getSingleResult();
+            Query nombreMatriz = em.createNativeQuery("SELECT nombre FROM origenes WHERE matriz=0");
+            String nombre = String.valueOf(nombreMatriz.getSingleResult());
+            String bProp = "SELECT nombre||' '||appaterno||' '||apmaterno FROM personas WHERE replace(to_char(idorigen,'099999')||to_char(idgrupo,'09')||to_char(idsocio,'099999'),' ','')='" + transferencia.getClientbankidentifier() + "'";
+            Query prop = em.createNativeQuery(bProp);
+            String propietario = String.valueOf(prop.getSingleResult());
+            String vouch = voucher(String.valueOf(transferencia.getTransactionid()),
+                    transferencia.getValuedate(),
+                    transferencia.getDebitproductbankidentifier(),
+                    String.valueOf(transferencia.getAmount()),
+                    nombre,
+                    propietario, transferencia.getDescription());
+            return vouch;
+
+        } catch (Exception e) {
+            System.out.println("Error al crear voucher:" + e.getMessage());
+            em.close();
+            return "";
+        } finally {
+            em.close();
+        }
+
+    }
+
+    //Metodo para validar transferencia entre cuentas propias
+    public String validarTransferenciaEntreMisCuentas(String opaOrigen, Double monto, String opaDestino, String clientBankIdentifier) {
+        EntityManager em = emf.createEntityManager();
+        String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'"
+                + " AND  replace(to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999'),' ','')='" + clientBankIdentifier + "'";
         String cuentaDestino = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaDestino + "'";
         String message = "";
+        System.out.println("Si llego");
         try {
-            Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
-            //Obtengo el producto origen
-            Auxiliares ctaOrigen = (Auxiliares) query.getSingleResult();
-            //obtengo el saldo del producto origen
-            Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
-            //Busco descripcion del idproducto origen
-            Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-            //Valido que el producto origen se trabaje en banca movil
-            CuentasBankingly cuentasBankingly = em.find(CuentasBankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-            System.out.println("CeuntaB:" + cuentasBankingly);
-            if (cuentasBankingly != null) {
-                //si el producto no es un prestamo            
-                if (prOrigen.getTipoproducto() == 0) {
-                    //Verifico el estatus de la cuenta origen
-                    if (ctaOrigen.getEstatus() == 2) {
-                        //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
-                        if (saldo >= monto) {
-                            //Busco la cuenta destino
-                            Query queryDestino = em.createNativeQuery(cuentaDestino, Auxiliares.class);
-                            Auxiliares ctaDestino = (Auxiliares) queryDestino.getSingleResult();
-                            if (ctaDestino != null) {
-                                //Busco el producto destino
-                                Productos productoDestino = em.find(Productos.class, ctaDestino.getAuxiliaresPK().getIdproducto());
-                                //Valido que la cuenta destino este activa
-                                if (ctaDestino.getEstatus() == 2) {
-                                    //Valido que producto destino opera para banca movil
-                                    CuentasBankingly cuentaBankinglyDestino = em.find(CuentasBankingly.class, ctaDestino.getAuxiliaresPK().getIdproducto());
-                                    if (cuentaBankinglyDestino != null) {
-                                        //Valido que el producto destino no sea un prestamo
-                                        if (productoDestino.getTipoproducto() == 0) {
-                                            //Valido que realmente el el producto destino pertenezca al mismo socio 
-                                            if (ctaOrigen.getIdorigen() == ctaDestino.getIdorigen() && ctaOrigen.getIdgrupo() == ctaDestino.getIdgrupo() && ctaOrigen.getIdsocio() == ctaDestino.getIdsocio()) {
+            Auxiliares ctaOrigen = null;
+            boolean bOrigen = false;
+            System.out.println("ConsultaParaCuentaOrigen:" + cuentaOrigen);
+            try {
+                Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
+                //Obtengo el producto origen
+                ctaOrigen = (Auxiliares) query.getSingleResult();
+                bOrigen = true;
+            } catch (Exception e) {
+                System.out.println("No existe Cuenta Origen");
+                bOrigen = false;
+            }
+
+            //Si existe el auxiliar origen en tabla auxiliares
+            if (bOrigen) {
+                Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
+                TablasDTO tablaProductoTDD = WSTDD.productoTddwebservice();
+                if (caja().contains("SANNICOLAS") & ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato2())) {
+                    TarjetaDeDebito tarjeta = new TarjetaDeDebito();
+                    WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(ctaOrigen.getAuxiliaresPK().getIdorigenp(), ctaOrigen.getAuxiliaresPK().getIdproducto(), ctaOrigen.getAuxiliaresPK().getIdauxiliar());
+                    WsSiscoopFoliosTarjetas1 tarjetas = tarjeta.buscaTarjetaTDD(foliosPK.getIdorigenp(), foliosPK.getIdproducto(), foliosPK.getIdauxiliar());
+                    try {
+                        System.out.println("consultando saldo para idtarjeta:" + tarjetas.getIdtarjeta());
+                        BalanceQueryResponseDto saldoTDD = tarjeta.saldoTDD(tarjetas.getWsSiscoopFoliosTarjetasPK());
+                        saldo = saldoTDD.getAvailableAmount();
+                        //saldo = 200.0;
+                        System.out.println("Saldo TDD:" + saldo);
+                    } catch (Exception e) {
+                        System.out.println("Error al buscar saldo de TDD:" + ctaOrigen.getAuxiliaresPK().getIdproducto());
+                        return message = "ERROR AL CONSUMIR WS TDD Y OBTENER SALDO DEL PRODUCTO";
+
+                    }
+                }
+                //obtengo el saldo del producto origen
+
+                //Busco descripcion del idproducto origen
+                Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                //Valido que el producto origen se trabaje en banca movil
+                Productos_bankingly cuentasBankingly = em.find(Productos_bankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                if (cuentasBankingly != null) {
+                    //si el producto no es un prestamo            
+                    if (prOrigen.getTipoproducto() == 0) {
+                        //Verifico el estatus de la cuenta origen
+                        if (ctaOrigen.getEstatus() == 2) {
+                            //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
+                            if (saldo > monto) {
+                                Auxiliares ctaDestino = null;
+                                boolean bDestino = false;
+                                //Busco la cuenta destino
+                                System.out.println("CuentaDestino:" + cuentaDestino);
+                                try {
+                                    Query queryDestino = em.createNativeQuery(cuentaDestino, Auxiliares.class);
+                                    ctaDestino = (Auxiliares) queryDestino.getSingleResult();
+                                    bDestino = true;
+                                } catch (Exception e) {
+                                    System.out.println("Error al encontrar productoDestino:" + e.getMessage());
+                                    bDestino = false;
+                                }
+                                if (bDestino) {
+                                    //Busco el producto destino
+                                    Productos productoDestino = em.find(Productos.class, ctaDestino.getAuxiliaresPK().getIdproducto());
+                                    //Valido que la cuenta destino este activa
+                                    if (ctaDestino.getEstatus() == 2) {
+                                        //Valido que producto destino opera para banca movil
+                                        Productos_bankingly cuentaBankinglyDestino = em.find(Productos_bankingly.class, ctaDestino.getAuxiliaresPK().getIdproducto());
+                                        if (cuentaBankinglyDestino != null) {
+                                            //Valido que el producto destino no sea un prestamo
+                                            if (productoDestino.getTipoproducto() == 0) {
+                                                //Valido que realmente el el producto destino pertenezca al mismo socio 
+                                                if (ctaOrigen.getIdorigen() == ctaDestino.getIdorigen() && ctaOrigen.getIdgrupo() == ctaDestino.getIdgrupo() && ctaOrigen.getIdsocio() == ctaDestino.getIdsocio()) {
+                                                    //valido el minimo o maximo para banca movil
+                                                    if (minMax(monto).toUpperCase().contains("VALIDO")) {
+                                                        //Valido el monto maximo por dia
+                                                        if (MaxPordia(opaOrigen, monto)) {
+                                                            message = "validado con exito";
+                                                        } else {
+                                                            message = "MONTO TRASPASA EL PERMITIDO DIARIO";
+                                                        }
+                                                    } else {
+                                                        message = "EL SALDO QUE INTENTA TRANSFERIR ES " + minMax(monto).toUpperCase() + " AL PERMITIDO";
+                                                    }
+                                                } else {
+                                                    message = "PRODUCTO DESTINO NO PERTENECE AL MISMO SOCIO";
+                                                }
+                                            } else {
+                                                message = "PRODUCTO DESTINO NO ACEPTA SOBRECARGOS";
+                                            }
+                                        } else {
+                                            message = "PRODUCTO DESTINO NO OPERA PARA BANCA MOVIL";
+                                        }
+                                    } else {
+                                        message = "PRODUCTO DESTINO ESTA INACTIVA";
+                                    }
+                                } else {
+                                    message = "NO SE ENCONTRO PRODUCTO DESTINO";
+                                }
+                            } else {
+                                message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
+                            }
+                        } else {
+                            message = "PRODUCTO ORIGEN INACTIVO";
+                        }
+
+                    } else {
+                        message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    }
+                } else {
+                    message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
+                }
+            } else {
+                message = "PRODUCTO ORIGEN NO PERTENECE AL SOCIO:" + clientBankIdentifier;
+            }
+
+        } catch (Exception e) {
+            em.close();
+            System.out.println("meee:" + message);
+            message = "ERROR AL PROCESAR CONSULTA";
+            System.out.println("Error en transferencia entre mis cuentas:" + e.getMessage());
+            return message;
+        } finally {
+            em.clear();
+            em.close();
+        }
+
+        return message.toUpperCase();
+    }
+
+    //Metodo para validar transferencia a otras cuentas
+    public String validarTransferenciaATerceros(String opaOrigen, Double monto, String opaDestino, String clientBankIdentifier) {
+        EntityManager em = emf.createEntityManager();
+        String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'"
+                + " AND  replace(to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999'),' ','')='" + clientBankIdentifier + "'";
+        String cuentaDestino = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaDestino + "'";
+        String message = "";
+        Double salxdo = 0.0;
+        try {
+            Auxiliares ctaOrigen = null;
+            boolean bOrigen = false;
+            try {
+                Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
+                //Obtengo el producto origen
+                ctaOrigen = (Auxiliares) query.getSingleResult();
+                bOrigen = true;
+            } catch (Exception e) {
+                System.out.println("Error al buscar producto origen:" + e.getMessage());
+                bOrigen = false;
+            }
+
+            if (bOrigen) {
+                Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
+                TablasDTO tablaProductoTDD = WSTDD.productoTddwebservice();
+                if (caja().toUpperCase().contains("SANNICOLAS") & ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato2())) {
+                    TarjetaDeDebito tarjeta = new TarjetaDeDebito();
+                    WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(ctaOrigen.getAuxiliaresPK().getIdorigenp(), ctaOrigen.getAuxiliaresPK().getIdproducto(), ctaOrigen.getAuxiliaresPK().getIdauxiliar());
+                    WsSiscoopFoliosTarjetas1 tarjetas = tarjeta.buscaTarjetaTDD(foliosPK.getIdorigenp(), foliosPK.getIdproducto(), foliosPK.getIdauxiliar());
+                    try {
+                        System.out.println("consultando saldo para idtarjeta:" + tarjetas.getIdtarjeta());
+                        BalanceQueryResponseDto saldoTDD = tarjeta.saldoTDD(tarjetas.getWsSiscoopFoliosTarjetasPK());
+                        saldo = saldoTDD.getAvailableAmount();
+                        //saldo = 200.0;
+                    } catch (Exception e) {
+                        System.out.println("Error al buscar saldo de TDD:" + ctaOrigen.getAuxiliaresPK().getIdproducto());
+                        return message = "ERROR AL CONSUMIR WS TDD Y OBTENER SALDO DEL PRODUCTO";
+
+                    }
+                }
+
+                //Busco descripcion del idproducto origen
+                Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                //Valido que el producto origen se trabaje en banca movil
+                Productos_bankingly cuentasBankingly = em.find(Productos_bankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                if (cuentasBankingly != null) {
+                    //si el producto no es un prestamo            
+                    if (prOrigen.getTipoproducto() != 2) {
+                        //Verifico el estatus de la cuenta origen
+                        if (ctaOrigen.getEstatus() == 2) {
+                            //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
+                            if (saldo >= monto) {
+                                Auxiliares ctaDestino = null;
+                                boolean bDestino = false;
+                                try {
+                                    //Busco la cuenta destino
+                                    Query queryDestino = em.createNativeQuery(cuentaDestino, Auxiliares.class);
+                                    ctaDestino = (Auxiliares) queryDestino.getSingleResult();
+                                    bDestino = true;
+                                } catch (Exception e) {
+                                    System.out.println("Error al buscar producto destino:" + e.getMessage());
+                                    bDestino = false;
+                                }
+                                if (bDestino) {
+                                    //Busco el producto destino
+                                    Productos productoDestino = em.find(Productos.class, ctaDestino.getAuxiliaresPK().getIdproducto());
+                                    //Valido que la cuenta destino este activa
+                                    if (ctaDestino.getEstatus() == 2) {
+                                        //Busco si existe el producto destino en el catalogo de banca movil
+                                        Productos_bankingly catalogoDestino = em.find(Productos_bankingly.class, productoDestino.getIdproducto());
+                                        if (catalogoDestino != null) {
+                                            //Valido que el producto destino no sea un prestamo
+                                            if (productoDestino.getTipoproducto() == 0) {
                                                 //valido el minimo o maximo para banca movil
                                                 if (minMax(monto).toUpperCase().contains("VALIDO")) {
                                                     //Valido el monto maximo por dia
@@ -267,271 +607,249 @@ public abstract class FacadeTransaction<T> {
                                                     message = "EL SALDO QUE INTENTA TRANSFERIR ES " + minMax(monto).toUpperCase() + " AL PERMITIDO";
                                                 }
                                             } else {
-                                                message = "PRODUCTO DESTINO NO PERTENECE AL MISMO SOCIO";
+                                                message = "PRODUCTO DESTINO NO ACEPTA SOBRECARGOS";
                                             }
                                         } else {
-                                            message = "PRODUCTO DESTINO NO ACEPTA SOBRECARGOS";
+                                            message = "PRODUCTO DESTINO NO OPERA PARA BANCA MOVIL";
                                         }
                                     } else {
-                                        message = "PRODUCTO DESTINO NO OPERA PARA BANCA MOVIL";
+                                        message = "PRODUCTO DESTINO ESTA INACTIVA";
                                     }
+
                                 } else {
-                                    message = "PRODUCTO DESTINO ESTA INACTIVA";
+                                    message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
                                 }
                             } else {
-                                message = "NO SE ENCONTRO PRODUCTO DESTINO";
+                                message = "PRODUCTO DESTINO NO EXISTE";
                             }
                         } else {
-                            message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
+                            message = "PRODUCTO ORIGEN INACTIVO";
                         }
-                    } else {
-                        message = "PRODUCTO ORIGEN INACTIVO";
-                    }
 
+                    } else {
+                        message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    }
                 } else {
-                    message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
                 }
             } else {
-                message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
-            }
-
-        } catch (Exception e) {
-            em.close();
-            System.out.println("meee:" + message);
-            message = "ERROR AL PROCESAR CONSULTA";
-            System.out.println("Error en transferencia entre mis cuentas:" + e.getMessage());
-            return message;
-        }
-        em.close();
-        return message.toUpperCase();
-    }
-
-    //Metodo para validar transferencia a otras cuentas
-    public String TransferenciaATerceros(String opaOrigen, Double monto, String opaDestino) {
-        EntityManager em = emf.createEntityManager();
-        String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'";
-        String cuentaDestino = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaDestino + "'";
-        String message = "";
-        try {
-            Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
-            //Obtengo el producto origen
-            Auxiliares ctaOrigen = (Auxiliares) query.getSingleResult();
-            //obtengo el saldo del producto origen
-            Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
-            //Busco descripcion del idproducto origen
-            Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-            //Valido que el producto origen se trabaje en banca movil
-            CuentasBankingly cuentasBankingly = em.find(CuentasBankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-            if (cuentasBankingly != null) {
-                //si el producto no es un prestamo            
-                if (prOrigen.getTipoproducto() == 0) {
-                    //Verifico el estatus de la cuenta origen
-                    if (ctaOrigen.getEstatus() == 2) {
-                        //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
-                        if (saldo >= monto) {
-                            //Busco la cuenta destino
-                            Query queryDestino = em.createNativeQuery(cuentaDestino, Auxiliares.class);
-                            Auxiliares ctaDestino = (Auxiliares) queryDestino.getSingleResult();
-                            //Busco el producto destino
-                            Productos productoDestino = em.find(Productos.class, ctaDestino.getAuxiliaresPK().getIdproducto());
-                            //Valido que la cuenta destino este activa
-                            if (ctaDestino.getEstatus() == 2) {
-                                //Busco si existe el producto destino en el catalogo de banca movil
-                                CuentasBankingly catalogoDestino = em.find(CuentasBankingly.class, productoDestino.getIdproducto());
-                                if (catalogoDestino != null) {
-                                    //Valido que el producto destino no sea un prestamo
-                                    if (productoDestino.getTipoproducto() == 0) {
-                                        //valido el minimo o maximo para banca movil
-                                        if (minMax(monto).toUpperCase().contains("VALIDO")) {
-                                            //Valido el monto maximo por dia
-                                            if (MaxPordia(opaOrigen, monto)) {
-                                                message = "VALIDADO CON EXITO";
-                                            } else {
-                                                message = "MONTO TRASPASA EL PERMITIDO DIARIO";
-                                            }
-                                        } else {
-                                            message = "EL SALDO QUE INTENTA TRANSFERIR ES " + minMax(monto).toUpperCase() + " AL PERMITIDO";
-                                        }
-                                    } else {
-                                        message = "PRODUCTO DESTINO NO ACEPTA SOBRECARGOS";
-                                    }
-                                } else {
-                                    message = "PRODUCTO DESTINO NO OPERA PARA BANCA MOVIL";
-                                }
-                            } else {
-                                message = "PRODUCTO DESTINO ESTA INACTIVA";
-                            }
-
-                        } else {
-                            message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
-                        }
-                    } else {
-                        message = "PRODUCTO ORIGEN INACTIVO";
-                    }
-
-                } else {
-                    message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
-                }
-            } else {
-                message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
+                message = "PRODUCTO OrigEN no pertenece al socio:" + clientBankIdentifier;
             }
         } catch (Exception e) {
             em.close();
             message = e.getMessage();
             System.out.println("Errro al validar transferencia a terceros:" + e.getMessage());
             return message;
+        } finally {
+            em.close();
         }
-        em.close();
         return message.toUpperCase();
     }
 
     //Metodo para validar pago a prestamos
-    public String PagoAPrestamos(String opaOrigen, Double monto, String opaDestino) {
+    public String validarPagoAPrestamos(String opaOrigen, Double monto, String opaDestino, String clientBankIdentifier) {
         EntityManager em = emf.createEntityManager();
-        String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'";
+        String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'"
+                + " AND  replace(to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999'),' ','')='" + clientBankIdentifier + "'";
         String cuentaDestino = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaDestino + "'";
         String message = "";
         try {
-            Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
-            //Obtengo el producto origen
-            Auxiliares ctaOrigen = (Auxiliares) query.getSingleResult();
-            //obtengo el saldo del producto origen
-            Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
-            //Valido que el producto origen se trabaje en banca movil
-            CuentasBankingly cuentasBankingly = em.find(CuentasBankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-            if (cuentasBankingly != null) {
-                //Busco descripcion del idproducto origen
-                Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-                //si el producto no es un prestamo            
-                if (prOrigen.getTipoproducto() == 0) {
-                    //Verifico el estatus de la cuenta origen
-                    if (ctaOrigen.getEstatus() == 2) {
-                        //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
-                        if (saldo >= monto) {
-                            //Busco la cuenta destino
-                            Query queryDestino = em.createNativeQuery(cuentaDestino, Auxiliares.class);
-                            Auxiliares ctaDestino = (Auxiliares) queryDestino.getSingleResult();
-                            //Busco el producto destino
-                            Productos productoDestino = em.find(Productos.class, ctaDestino.getAuxiliaresPK().getIdproducto());
-                            //Valido que la cuenta destino este activa
-                            if (ctaDestino.getEstatus() == 2) {
-                                //Valido que cuenta destino pertenezca al mismo socio
-                                if (ctaOrigen.getIdorigen() == ctaDestino.getIdorigen() && ctaOrigen.getIdgrupo() == ctaDestino.getIdgrupo() && ctaOrigen.getIdsocio() == ctaDestino.getIdsocio()) {
-                                    //Valido que el producto destino sea un prestamo
-                                    if (productoDestino.getTipoproducto() == 2) {
-                                        //valido el minimo o maximo para banca movil
-                                        if (minMax(monto).toUpperCase().contains("VALIDO")) {
-                                            //Valido el monto maximo por dia
-                                            if (MaxPordia(opaOrigen, monto)) {
-                                                message = "VALIDADO CON EXITO";
+            Auxiliares ctaOrigen = null;
+            boolean bOrigen = false;
+            try {
+                Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
+                //Obtengo el producto origen
+                ctaOrigen = (Auxiliares) query.getSingleResult();
+                bOrigen = true;
+            } catch (Exception e) {
+                bOrigen = false;
+            }
+            if (bOrigen) {
+                Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
+                TablasDTO tablaProductoTDD = WSTDD.productoTddwebservice();
+                if (caja().toUpperCase().contains("SANNICOLAS") & ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato2())) {
+                    TarjetaDeDebito tarjeta = new TarjetaDeDebito();
+                    WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(ctaOrigen.getAuxiliaresPK().getIdorigenp(), ctaOrigen.getAuxiliaresPK().getIdproducto(), ctaOrigen.getAuxiliaresPK().getIdauxiliar());
+                    WsSiscoopFoliosTarjetas1 tarjetas = tarjeta.buscaTarjetaTDD(foliosPK.getIdorigenp(), foliosPK.getIdproducto(), foliosPK.getIdauxiliar());
+                    try {
+                        System.out.println("consultando saldo para idtarjeta:" + tarjetas.getIdtarjeta());
+                        BalanceQueryResponseDto saldoTDD = tarjeta.saldoTDD(tarjetas.getWsSiscoopFoliosTarjetasPK());
+                        saldo = saldoTDD.getAvailableAmount();
+                        
+                    } catch (Exception e) {
+                        System.out.println("Error al buscar saldo de TDD:" + ctaOrigen.getAuxiliaresPK().getIdproducto());
+                        return message = "ERROR AL CONSUMIR WS TDD Y OBTENER SALDO DEL PRODUCTO";
+
+                    }
+                }
+                //Valido que el producto origen se trabaje en banca movil
+                Productos_bankingly cuentasBankingly = em.find(Productos_bankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                if (cuentasBankingly != null) {
+                    //Busco descripcion del idproducto origen
+                    Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                    //si el producto no es un prestamo            
+                    if (prOrigen.getTipoproducto() == 0) {
+                        //Verifico el estatus de la cuenta origen
+                        if (ctaOrigen.getEstatus() == 2) {
+                            //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
+                            if (saldo >= monto) {
+                                Auxiliares ctaDestino = null;
+                                boolean bDestino = false;
+                                try {
+                                    //Busco la cuenta destino
+                                    Query queryDestino = em.createNativeQuery(cuentaDestino, Auxiliares.class);
+                                    ctaDestino = (Auxiliares) queryDestino.getSingleResult();
+                                    bDestino = true;
+                                } catch (Exception e) {
+                                    System.out.println("Error al buscar cuenta destino:" + e.getMessage());
+                                    bDestino = false;
+                                }
+                                if (bDestino) {
+                                    //Busco el producto destino
+                                    Productos productoDestino = em.find(Productos.class, ctaDestino.getAuxiliaresPK().getIdproducto());
+                                    //Valido que la cuenta destino este activa
+                                    if (ctaDestino.getEstatus() == 2) {
+                                        //Valido que cuenta destino pertenezca al mismo socio
+                                        if (ctaOrigen.getIdorigen() == ctaDestino.getIdorigen() && ctaOrigen.getIdgrupo() == ctaDestino.getIdgrupo() && ctaOrigen.getIdsocio() == ctaDestino.getIdsocio()) {
+                                            //Valido que el producto destino sea un prestamo
+                                            if (productoDestino.getTipoproducto() == 2) {
+                                                //valido el minimo o maximo para banca movil
+                                                if (minMax(monto).toUpperCase().contains("VALIDO")) {
+                                                    //Valido el monto maximo por dia
+                                                    if (MaxPordia(opaOrigen, monto)) {
+                                                        message = "VALIDADO CON EXITO";
+                                                    } else {
+                                                        message = "MONTO TRASPASA EL PERMITIDO DIARIO";
+                                                    }
+                                                } else {
+                                                    message = "EL SALDO QUE INTENTA TRANSFERIR ES " + minMax(monto).toUpperCase() + " AL PERMITIDO";
+                                                }
                                             } else {
-                                                message = "MONTO TRASPASA EL PERMITIDO DIARIO";
+                                                message = "PRODUCTO DESTINO NO ES UN PRESTAMO";
                                             }
                                         } else {
-                                            message = "EL SALDO QUE INTENTA TRANSFERIR ES " + minMax(monto).toUpperCase() + " AL PERMITIDO";
+                                            message = "PRODUCTO DESTINO NO PERTENCE AL MISMO SOCIO";
                                         }
                                     } else {
-                                        message = "PRODUCTO DESTINO NO ES UN PRESTAMO";
+                                        message = "PRODUCTO DESTINO ESTA INACTIVO";
                                     }
                                 } else {
-                                    message = "PRESTAMO DESTINO NO PERTENCE AL MISMO SOCIO";
+                                    message = "NO SE ENCONTRO PRODUCTO DESTINO";
                                 }
                             } else {
-                                message = "PRODUCTO DESTINO ESTA INACTIVO";
+                                message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
                             }
                         } else {
-                            message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
+                            message = "PRODUCTO ORIGEN INACTIVO";
                         }
-                    } else {
-                        message = "PRODUCTO ORIGEN INACTIVO";
-                    }
 
+                    } else {
+                        message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    }
                 } else {
-                    message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
                 }
             } else {
-                message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
+                message = "PRODUCTO ORIGEN NO PERTENECE AL SOCIO:" + clientBankIdentifier;
             }
         } catch (Exception e) {
             em.close();
             message = e.getMessage();
             System.out.println("Error al realizar pago a prestamo:" + e.getMessage());
             return message;
+        } finally {
+            em.close();
         }
-        em.close();
         return message.toUpperCase();
     }
 
     //Metodo para validar pago a prestamos
-    public String EnviarOrdenSPEI(String opaOrigen, Double monto,@Context UriInfo ui) {
+    public String EnviarOrdenSPEI(String opaOrigen, Double monto, @Context UriInfo ui) {
         EntityManager em = emf.createEntityManager();
         String cuentaOrigen = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + opaOrigen + "'";
-        System.out.println("Consulta:"+cuentaOrigen);
+        System.out.println("Consulta:" + cuentaOrigen);
         String message = "";
         try {
-            Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
-            //Obtengo el producto origen
-            Auxiliares ctaOrigen = (Auxiliares) query.getSingleResult();
-            //obtengo el saldo del producto origen
-            Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
-            //Valido que el producto origen se trabaje en banca movil
-            CuentasBankingly cuentasBankingly = em.find(CuentasBankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-            if (cuentasBankingly != null) {
-                //Busco descripcion del idproducto origen
-                Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
-                //si el producto no es un prestamo            
-                if (prOrigen.getTipoproducto() == 0) {
-                    //Verifico el estatus de la cuenta origen
-                    if (ctaOrigen.getEstatus() == 2) {
-                        //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
-                        if (saldo >= monto) {
-                            //Busco origen para saber quien esta usando el ws service
-                            Query or = em.createNativeQuery("SELECT * FROM origenes WHERE matriz=0", Origenes.class);
-                            Origenes ori = (Origenes) or.getSingleResult();
-                            //Si es CSN voy a los servicios de SPEI CSN
-                            if (ori.getNombre().toUpperCase().replace(" ", "").contains("SANNICOLAS")) {
-                                JsonObject request=new JsonObject();
-                                //Parto la url completa para obtener basePath
-                                String []partesUrl=ui.getBaseUri().toString().split("Ws");
-                                String urlBase=partesUrl[0];
-                                //al UrlPath le pongo el nombre del proyecto de SPEI-CSN
-                                String urlComplete=urlBase+"SPEI-CSN/spei/v1.0/srvEnviaOrden";
-                                request.put("cliente",opaOrigen);
-                                request.put("monto",monto);
-                                message=metodoEnviarSPEI(urlComplete,request.toString().replace("=",":")); 
-                                
+            Auxiliares ctaOrigen = null;
+            boolean bOrigen = false;
+            try {
+                Query query = em.createNativeQuery(cuentaOrigen, Auxiliares.class);
+                //Obtengo el producto origen
+                ctaOrigen = (Auxiliares) query.getSingleResult();
+                bOrigen = true;
+            } catch (Exception e) {
+                System.out.println("Error al buscar producto origen:" + e.getMessage());
+                bOrigen = false;
+            }
+            if (bOrigen) {
+                //obtengo el saldo del producto origen
+                Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
+                //Valido que el producto origen se trabaje en banca movil
+                Productos_bankingly cuentasBankingly = em.find(Productos_bankingly.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                if (cuentasBankingly != null) {
+                    //Busco descripcion del idproducto origen
+                    Productos prOrigen = em.find(Productos.class, ctaOrigen.getAuxiliaresPK().getIdproducto());
+                    //si el producto no es un prestamo            
+                    if (prOrigen.getTipoproducto() == 0) {
+                        //Verifico el estatus de la cuenta origen
+                        if (ctaOrigen.getEstatus() == 2) {
+                            //verifico que el saldo del producto origen es mayor o igual a lo que se intenta transferir
+                            if (saldo >= monto) {
+                                //Busco origen para saber quien esta usando el ws service
+                                Query or = em.createNativeQuery("SELECT * FROM origenes WHERE matriz=0", Origenes.class);
+                                Origenes ori = (Origenes) or.getSingleResult();
+                                //Si es CSN voy a los servicios de SPEI CSN
+                                if (ori.getNombre().toUpperCase().replace(" ", "").contains("SANNICOLAS")) {
+                                    JsonObject request = new JsonObject();
+                                    /*//Parto la url completa para obtener basePath
+                                    String[] partesUrl = ui.getBaseUri().toString().split("Ws");
+                                    String urlBase = partesUrl[0];
+                                    //al UrlPath le pongo el nombre del proyecto de SPEI-CSN
+                                    String urlComplete = urlBase + "SPEI-CSN/spei/v1.0/srvEnviaOrden";*/
+                                    //Busco la url en tablas
+                                    TablasPK tbPK = new TablasPK("bankingly_banca_movil", "speipath");
+                                    Tablas tb = em.find(Tablas.class, tbPK);
+                                    String url = tb.getDato1();
+                                    String urlSPEI = url + "srvEnviaOrden";
+                                    request.put("cliente", opaOrigen);
+                                    request.put("monto", monto);
+                                    message = metodoEnviarSPEI(urlSPEI, request.toString().replace("=", ":"));
+                                }
+
+                            } else {
+                                message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
                             }
-
                         } else {
-                            message = "FONDOS INSUFICIENTES PARA COMPLETAR LA TRANSACCION";
+                            message = "PRODUCTO ORIGEN INACTIVO";
                         }
-                    } else {
-                        message = "PRODUCTO ORIGEN INACTIVO";
-                    }
 
+                    } else {
+                        message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    }
                 } else {
-                    message = "PRODUCTO ORIGEN NO PERMITE SOBRECARGOS";
+                    message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
                 }
             } else {
-                message = "PRODUCTO ORIGEN NO OPERA PARA BANCA MOVIL";
+                message = "NO SE ENCONTRO PRODUCTO ORIGEN";
             }
         } catch (Exception e) {
             em.close();
-            System.out.println("Error al realizar pago a prestamo:" + e.getMessage());
+            System.out.println("Error al realizar tranferenciasSPEI:" + e.getMessage());
             return message;
         }
         em.close();
         return message.toUpperCase();
     }
-   
+
     //Se consume un servicio que yo desarrolle donde consumo API STP en caso de CSN si alguuien mas usara SPEI desarrollaria otro proyecto especficamente para la caja
-    private String metodoEnviarSPEI(String url,String request) {
-        URL urlB=null;
-        String output="";
-        String salida="";
-        System.out.println("siiiiiiiiiiiiiii:"+request);
+    private String metodoEnviarSPEI(String url, String request) {
+        URL urlB = null;
+        String output = "";
+        String salida = "";
+        System.out.println("Request:" + request);
+        System.out.println("UrlSPEI:" + url);
         try {
-        urlB = new URL(url);
+            urlB = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) urlB.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
@@ -541,16 +859,16 @@ public abstract class FacadeTransaction<T> {
             os.write(request.getBytes());
             os.flush();
             int codigoHTTP = conn.getResponseCode();
-            BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));            
+            BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
             System.out.println("Output from Server .... \n");
             if (codigoHTTP == 200) {
                 while ((output = br.readLine()) != null) {
-                    salida=output;              
+                    salida = output;
                 }
-            }            
+            }
             conn.disconnect();
         } catch (Exception ex) {
-            System.out.println("e:"+ex.getMessage());
+            System.out.println("e:" + ex.getMessage());
         }
         return salida;
     }
@@ -562,21 +880,58 @@ public abstract class FacadeTransaction<T> {
         try {
             TablasPK tbPk = new TablasPK("bankingly_banca_movil", "montomaximominimo");
             Tablas tb = em.find(Tablas.class, tbPk);
-
-            if (amount > Integer.parseInt(tb.getDato1())) {
+            if (amount > Double.parseDouble(tb.getDato1())) {
                 mensaje = "MAYOR";
-            } else if (amount < Integer.parseInt(tb.getDato2())) {
+            } else if (amount < Double.parseDouble(tb.getDato2())) {
                 mensaje = "MENOR";
             } else {
                 mensaje = "VALIDO";
             }
-
         } catch (Exception e) {
             em.close();
-            System.out.println("Error al validar montos:" + e.getMessage());
+            System.out.println("Error al validar monto min-max:" + e.getMessage());
+        } finally {
+            em.close();
         }
-        em.close();
         return mensaje;
+    }
+
+    public String voucher(String idtransaccion, String fecha, String cuenta, String monto, String caja, String propietario, String comentario) {
+
+        try {
+            Document document = new Document();
+            PdfWriter.getInstance(document, new FileOutputStream(ruta() + "vo" + idtransaccion + cuenta + ".pdf"));
+            document.open();
+            // Left
+            Paragraph paragraph1 = new Paragraph(caja);
+            paragraph1.setAlignment(Element.ALIGN_CENTER);
+
+            Font fuente = new Font();
+            fuente.setSize(2);
+            fuente.setStyle(Font.BOLD);
+            paragraph1.setSpacingBefore(20);
+
+            paragraph1.setFont(fuente);
+            document.add(paragraph1);
+
+            Paragraph paragraph2 = new Paragraph(
+                    "No.Transferencia:" + idtransaccion + "\n"
+                    + "Fecha:" + fecha + "\n"
+                    + "Cuenta:" + cuenta + "\n"
+                    + "Monto operacion:" + monto + "\n"
+                    + "Propietario cuenta:" + propietario + "\n"
+                    + "Motivo tranferencia:" + comentario
+            );
+            paragraph2.setSpacingBefore(20);
+            paragraph2.setAlignment(Element.ALIGN_LEFT);
+            document.add(paragraph2);
+            document.close();
+            return ruta() + "vo" + idtransaccion + cuenta + ".pdf";
+        } catch (Exception e) {
+            System.out.println("Error al crear voucher:" + e.getMessage());
+            e.printStackTrace();
+            return "";
+        }
     }
 
     //Valida el monto maximo permitido por dia
@@ -610,8 +965,30 @@ public abstract class FacadeTransaction<T> {
         } catch (Exception e) {
             em.close();
             System.out.println("Error al validar permitido diario:" + e.getMessage());
+        } finally {
+            em.close();
         }
         return false;
+    }
+
+    public String caja() {
+        EntityManager em = emf.createEntityManager();
+        String nombreOrigen = "";
+        try {
+            String consulta = "SELECT replace(nombre,' ','') FROM origenes WHERE matriz=0";
+            System.out.println("ConsultaOrigen:" + consulta);
+            Query query = em.createNativeQuery(consulta);
+            nombreOrigen = String.valueOf(query.getSingleResult());
+        } catch (Exception e) {
+            em.clear();
+            em.close();
+            System.out.println("Error al crear origen trabajando:" + e.getMessage());
+            return "";
+        } finally {
+            em.clear();
+            em.close();
+        }
+        return nombreOrigen.replace(" ", "").toUpperCase();
     }
 
     public void cerrar() {

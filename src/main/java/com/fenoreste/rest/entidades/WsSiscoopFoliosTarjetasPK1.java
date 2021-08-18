@@ -19,7 +19,7 @@ import javax.persistence.TemporalType;
  */
 @Cacheable(false)
 @Embeddable
-public class WsFoliosTarjetasSyCPK implements Serializable {
+public class WsSiscoopFoliosTarjetasPK1 implements Serializable {
 
     @Column(name = "idorigenp")
     private int idorigenp;
@@ -27,21 +27,14 @@ public class WsFoliosTarjetasSyCPK implements Serializable {
     private int idproducto;
     @Column(name = "idauxiliar")
     private int idauxiliar;
-    @Column(name = "idtarjeta")
-    private String idtarjeta;
-    @Column(name = "fecha_hora")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaHora;
 
-    public WsFoliosTarjetasSyCPK() {
+    public WsSiscoopFoliosTarjetasPK1() {
     }
 
-    public WsFoliosTarjetasSyCPK(int idorigenp, int idproducto, int idauxiliar, String idtarjeta, Date fechaHora) {
+    public WsSiscoopFoliosTarjetasPK1(int idorigenp, int idproducto, int idauxiliar) {
         this.idorigenp = idorigenp;
         this.idproducto = idproducto;
         this.idauxiliar = idauxiliar;
-        this.idtarjeta = idtarjeta;
-        this.fechaHora = fechaHora;
     }
 
     public int getIdorigenp() {
@@ -68,40 +61,23 @@ public class WsFoliosTarjetasSyCPK implements Serializable {
         this.idauxiliar = idauxiliar;
     }
 
-    public String getIdtarjeta() {
-        return idtarjeta;
-    }
-
-    public void setIdtarjeta(String idtarjeta) {
-        this.idtarjeta = idtarjeta;
-    }
-
-    public Date getFechaHora() {
-        return fechaHora;
-    }
-
-    public void setFechaHora(Date fechaHora) {
-        this.fechaHora = fechaHora;
-    }
-
+   
     @Override
     public int hashCode() {
         int hash = 0;
         hash += (int) idorigenp;
         hash += (int) idproducto;
         hash += (int) idauxiliar;
-        hash += (idtarjeta != null ? idtarjeta.hashCode() : 0);
-        hash += (fechaHora != null ? fechaHora.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof WsFoliosTarjetasSyCPK)) {
+        if (!(object instanceof WsSiscoopFoliosTarjetasPK1)) {
             return false;
         }
-        WsFoliosTarjetasSyCPK other = (WsFoliosTarjetasSyCPK) object;
+        WsSiscoopFoliosTarjetasPK1 other = (WsSiscoopFoliosTarjetasPK1) object;
         if (this.idorigenp != other.idorigenp) {
             return false;
         }
@@ -111,15 +87,12 @@ public class WsFoliosTarjetasSyCPK implements Serializable {
         if (this.idauxiliar != other.idauxiliar) {
             return false;
         }
-        if ((this.idtarjeta == null && other.idtarjeta != null) || (this.idtarjeta != null && !this.idtarjeta.equals(other.idtarjeta))) {
-            return false;
-        }
-        return !((this.fechaHora == null && other.fechaHora != null) || (this.fechaHora != null && !this.fechaHora.equals(other.fechaHora)));
+        return false;
     }
 
     @Override
     public String toString() {
-        return "com.fenoreste.modelo.entidad.WsSiscoopFoliosTarjetasPK[ idorigenp=" + idorigenp + ", idproducto=" + idproducto + ", idauxiliar=" + idauxiliar + ", idtarjeta=" + idtarjeta + ", fechaHora=" + fechaHora + " ]";
+        return "com.fenoreste.modelo.entidad.WsSiscoopFoliosTarjetasPK[ idorigenp=" + idorigenp + ", idproducto=" + idproducto + ", idauxiliar=" + idauxiliar  + " ]";
     }
 
 }

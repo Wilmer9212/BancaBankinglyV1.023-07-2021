@@ -31,14 +31,17 @@ public class usuarios_banca_bankingly implements Serializable {
     private String username;
     @Column(name = "socio")
     private String socio;
+    @Column(name="estatus")
+    private boolean estatus;
 
     public usuarios_banca_bankingly() {
     }
 
-    public usuarios_banca_bankingly(int id, String username, String socio) {
+    public usuarios_banca_bankingly(int id, String username, String socio, boolean estatus) {
         this.id = id;
         this.username = username;
         this.socio = socio;
+        this.estatus = estatus;
     }
 
     public int getId() {
@@ -65,6 +68,15 @@ public class usuarios_banca_bankingly implements Serializable {
         this.socio = socio;
     }
 
+    public boolean isEstatus() {
+        return estatus;
+    }
+
+    public void setEstatus(boolean estatus) {
+        this.estatus = estatus;
+    }
+    
+    
     @Override
     public String toString() {
         return "usuarios_banca_bankingly{" + "id=" + id + ", username=" + username + ", socio=" + socio + '}';

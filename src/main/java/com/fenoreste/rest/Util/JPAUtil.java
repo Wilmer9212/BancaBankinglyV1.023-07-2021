@@ -24,22 +24,21 @@ public class JPAUtil {
         System.out.println("Ip:" + ip + ", Base:" + bd);
 
         try {
-            System.out.println("Lllego a jpa util");
+            
             Properties properties = new Properties();
-            /*properties.put("hibernate.connection.driver_class", "org.postgresql.Driver");
-            properties.put("hibernate.connection.url", "jdbc:postgresql://" + ip + ":5432/" + bd);
+            properties.put("hibernate.connection.driver_class", "org.postgresql.Driver");
+            properties.put("hibernate.connection.url", "jdbc:postgresql://" + ip + ":5432/"+bd);//+"?UseUnicode=true&amp;characterEncoding=utf8");
             properties.put("hibernate.connection.username", usuario);
             properties.put("hibernate.connection.password", pass);
-            */
             
+            /*
             properties.put("javax.persistence.jdbc.driver", "org.postgresql.Driver");
             properties.put("javax.persistence.jdbc.url", "jdbc:postgresql://" + ip + ":5432/" + bd);
             properties.put("javax.persistence.jdbc.user", usuario);
-            properties.put("javax.persistence.jdbc.password", pass);
+            properties.put("javax.persistence.jdbc.password", pass);*/
             return Persistence.createEntityManagerFactory(PU, properties);
 
         } catch (Throwable e) {
-            System.out.println("" + e.getStackTrace());
             System.err.println("Error al conectar a la persistencia: " + e.getMessage());
 
         }

@@ -10,15 +10,12 @@ import com.fenoreste.rest.entidades.TablasPK;
 
 /**
  *
- * @author prometeo
+ * @author wilmer
  */
-
-public interface TablasServiceLocal {
-
-    TablasDTO buscaTabla(TablasPK tablasPk);
+public interface ServiceTablas {
+     TablasDTO buscaTabla(TablasPK tablasPk);
     
     TablasDTO buscaValorUDIS();
     
     TablasDTO buscaTablaPuntomania();
-    
 }

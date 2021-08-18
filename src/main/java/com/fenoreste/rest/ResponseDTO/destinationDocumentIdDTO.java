@@ -5,9 +5,6 @@
  */
 package com.fenoreste.rest.ResponseDTO;
 
-import com.fenoreste.rest.Request.*;
-import com.fenoreste.rest.ResponseDTO.*;
-
 /**
  *
  * @author Elliot

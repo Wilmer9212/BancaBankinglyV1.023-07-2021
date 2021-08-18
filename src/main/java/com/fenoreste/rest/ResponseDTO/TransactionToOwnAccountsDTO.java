@@ -5,6 +5,7 @@
  */
 package com.fenoreste.rest.ResponseDTO;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 /**
@@ -15,7 +16,7 @@ public class TransactionToOwnAccountsDTO {
   
 private int subTransactionTypeId;
 private String currencyId;
-private Date valueDate;
+private String valueDate;
 private int transactionTypeId;
 private int transactionStatusId;
 private String clientBankIdentifier;
@@ -29,18 +30,18 @@ private Double amount;
 private String notifyTo;
 private int notificationChannelId;
 private int transactionId;
-private destinationDocumentIdDTO destinationDocumentId;
+private DocumentIdTransaccionesDTO destinationDocumentId;
 private String destinationName;
 private String destinationBank;
 private String description;
 private String bankRoutingNumber;
 private String sourceName;
 private String sourceBank;
-private sourceDocumentIdDTO sourceDocumentId;
+private DocumentIdTransaccionesDTO sourceDocumentId;
 private boolean regulationAmountExceeded;
 private String sourceFunds;
 private String destinationFunds;
-private userDocumentIdDTO userDocumentId;
+private DocumentIdTransaccionesDTO userDocumentId;
 private Double transactionCost;
 private String transactionCostCurrencyId;
 private Double exchangeRate;
@@ -52,7 +53,7 @@ private String integrationParameters;
     public TransactionToOwnAccountsDTO() {
     }
 
-    public TransactionToOwnAccountsDTO(int subTransactionTypeId, String currencyId, Date valueDate, int transactionTypeId, int transactionStatusId, String clientBankIdentifier, String debitProductBankIdentifier, int debitProductTypeId, String debitCurrencyId, String creditProductBankIdentifier, int creditProductTypeId, String creditCurrencyId, Double amount, String notifyTo, int notificationChannelId, int transactionId, destinationDocumentIdDTO destinationDocumentId, String destinationName, String destinationBank, String description, String bankRoutingNumber, String sourceName, String sourceBank, sourceDocumentIdDTO sourceDocumentId, boolean regulationAmountExceeded, String sourceFunds, String destinationFunds, userDocumentIdDTO userDocumentId, Double transactionCost, String transactionCostCurrencyId, Double exchangeRate, String countryIntermediaryInstitution, String intermediaryInstitution, String routeNumberIntermediaryInstitution, String integrationParameters) {
+    public TransactionToOwnAccountsDTO(int subTransactionTypeId, String currencyId, String valueDate, int transactionTypeId, int transactionStatusId, String clientBankIdentifier, String debitProductBankIdentifier, int debitProductTypeId, String debitCurrencyId, String creditProductBankIdentifier, int creditProductTypeId, String creditCurrencyId, Double amount, String notifyTo, int notificationChannelId, int transactionId, DocumentIdTransaccionesDTO destinationDocumentId, String destinationName, String destinationBank, String description, String bankRoutingNumber, String sourceName, String sourceBank, DocumentIdTransaccionesDTO sourceDocumentId, boolean regulationAmountExceeded, String sourceFunds, String destinationFunds, DocumentIdTransaccionesDTO userDocumentId, Double transactionCost, String transactionCostCurrencyId, Double exchangeRate, String countryIntermediaryInstitution, String intermediaryInstitution, String routeNumberIntermediaryInstitution, String integrationParameters) {
         this.subTransactionTypeId = subTransactionTypeId;
         this.currencyId = currencyId;
         this.valueDate = valueDate;
@@ -106,11 +107,11 @@ private String integrationParameters;
         this.currencyId = currencyId;
     }
 
-    public Date getValueDate() {
+    public String getValueDate() {
         return valueDate;
     }
 
-    public void setValueDate(Date valueDate) {
+    public void setValueDate(String valueDate) {
         this.valueDate = valueDate;
     }
 
@@ -218,11 +219,11 @@ private String integrationParameters;
         this.transactionId = transactionId;
     }
 
-    public destinationDocumentIdDTO getDestinationDocumentId() {
+    public DocumentIdTransaccionesDTO getDestinationDocumentId() {
         return destinationDocumentId;
     }
 
-    public void setDestinationDocumentId(destinationDocumentIdDTO destinationDocumentId) {
+    public void setDestinationDocumentId(DocumentIdTransaccionesDTO destinationDocumentId) {
         this.destinationDocumentId = destinationDocumentId;
     }
 
@@ -274,11 +275,11 @@ private String integrationParameters;
         this.sourceBank = sourceBank;
     }
 
-    public sourceDocumentIdDTO getSourceDocumentId() {
+    public DocumentIdTransaccionesDTO getSourceDocumentId() {
         return sourceDocumentId;
     }
 
-    public void setSourceDocumentId(sourceDocumentIdDTO sourceDocumentId) {
+    public void setSourceDocumentId(DocumentIdTransaccionesDTO sourceDocumentId) {
         this.sourceDocumentId = sourceDocumentId;
     }
 
@@ -306,11 +307,11 @@ private String integrationParameters;
         this.destinationFunds = destinationFunds;
     }
 
-    public userDocumentIdDTO getUserDocumentId() {
+    public DocumentIdTransaccionesDTO getUserDocumentId() {
         return userDocumentId;
     }
 
-    public void setUserDocumentId(userDocumentIdDTO userDocumentId) {
+    public void setUserDocumentId(DocumentIdTransaccionesDTO userDocumentId) {
         this.userDocumentId = userDocumentId;
     }
 
@@ -369,11 +370,16 @@ private String integrationParameters;
     public void setIntegrationParameters(String integrationParameters) {
         this.integrationParameters = integrationParameters;
     }
+    
+    
 
+    
     @Override
     public String toString() {
         return "TransactionToOwnAccountsDTO{" + "subTransactionTypeId=" + subTransactionTypeId + ", currencyId=" + currencyId + ", valueDate=" + valueDate + ", transactionTypeId=" + transactionTypeId + ", transactionStatusId=" + transactionStatusId + ", clientBankIdentifier=" + clientBankIdentifier + ", debitProductBankIdentifier=" + debitProductBankIdentifier + ", debitProductTypeId=" + debitProductTypeId + ", debitCurrencyId=" + debitCurrencyId + ", creditProductBankIdentifier=" + creditProductBankIdentifier + ", creditProductTypeId=" + creditProductTypeId + ", creditCurrencyId=" + creditCurrencyId + ", amount=" + amount + ", notifyTo=" + notifyTo + ", notificationChannelId=" + notificationChannelId + ", transactionId=" + transactionId + ", destinationDocumentId=" + destinationDocumentId + ", destinationName=" + destinationName + ", destinationBank=" + destinationBank + ", description=" + description + ", bankRoutingNumber=" + bankRoutingNumber + ", sourceName=" + sourceName + ", sourceBank=" + sourceBank + ", sourceDocumentId=" + sourceDocumentId + ", regulationAmountExceeded=" + regulationAmountExceeded + ", sourceFunds=" + sourceFunds + ", destinationFunds=" + destinationFunds + ", userDocumentId=" + userDocumentId + ", transactionCost=" + transactionCost + ", transactionCostCurrencyId=" + transactionCostCurrencyId + ", exchangeRate=" + exchangeRate + ", countryIntermediaryInstitution=" + countryIntermediaryInstitution + ", intermediaryInstitution=" + intermediaryInstitution + ", routeNumberIntermediaryInstitution=" + routeNumberIntermediaryInstitution + ", integrationParameters=" + integrationParameters + '}';
     }
+
+   
 
         
 }

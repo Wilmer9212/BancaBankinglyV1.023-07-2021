@@ -9,7 +9,6 @@ import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.Util.AbstractFacade_1;
 import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;
-import com.syc.services.SiscoopTDD;
 import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -20,6 +19,7 @@ import java.util.Date;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.xml.namespace.QName;
+import wssyctdd.SiscoopTDD;
 
 /**
  *

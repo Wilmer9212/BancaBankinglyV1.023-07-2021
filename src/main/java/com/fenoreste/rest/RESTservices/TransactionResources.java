@@ -6,16 +6,18 @@
 package com.fenoreste.rest.RESTservices;
 
 import com.fenoreste.rest.ResponseDTO.BackendOperationResultDTO;
+import com.fenoreste.rest.ResponseDTO.DocumentIdTransaccionesDTO;
 import com.fenoreste.rest.ResponseDTO.TransactionToOwnAccountsDTO;
-import com.fenoreste.rest.ResponseDTO.destinationDocumentIdDTO;
-import com.fenoreste.rest.ResponseDTO.sourceDocumentIdDTO;
-import com.fenoreste.rest.ResponseDTO.userDocumentIdDTO;
 import com.fenoreste.rest.Util.Authorization;
 import com.fenoreste.rest.dao.TransactionDAO;
 import com.fenoreste.rest.service.MetodosTransferenciasService;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import com.github.cliftonlabs.json_simple.JsonObject;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.Timestamp;
+import java.util.Base64;
 import javax.json.Json;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.HeaderParam;
@@ -39,12 +41,13 @@ public class TransactionResources {
     MetodosTransferenciasService metodosTransferencias = new MetodosTransferenciasService();
     BackendOperationResultDTO backendOperationResult = new BackendOperationResultDTO();
     //BasePath SPEI
-    String basePath="";
+    String basePath = "";
+
     @Path("/Insert")
     @POST
     @Produces({MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_JSON})
-    public Response insertTransaction(String cadena, @HeaderParam("authorization") String authCredentials,@Context UriInfo urlPath) {
+    public Response insertTransaction(String cadena, @HeaderParam("authorization") String authCredentials, @Context UriInfo urlPath) throws IOException {
         backendOperationResult.setBackendCode("500");
         backendOperationResult.setBackendMessage("");
         backendOperationResult.setBackendReference("0");
@@ -58,8 +61,11 @@ public class TransactionResources {
  /*if (!auth.isUserAuthenticated(authCredentials)) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Credenciales incorrectas").build();
         }*/
-        System.out.println("paso");
-        JSONObject jsonRecibido = new JSONObject(cadena);
+        
+
+        JSONObject jsonRecibido = new JSONObject(cadena.replace("null", "nulo"));
+
+
         /*================================================================
                 Obtenemos el request y lo pasamos a DTO
         =================================================================*/
@@ -68,31 +74,38 @@ public class TransactionResources {
 
             JSONObject insertTransaction = jsonRecibido.getJSONObject("inserTransactionInput");
             JSONObject destinationDocumentId = insertTransaction.getJSONObject("destinationDocumentId");
-            JSONObject sourceDocumentId = insertTransaction.getJSONObject("sourceDocumentId");
-            JSONObject userDocumentId = insertTransaction.getJSONObject("userDocumentId");
 
-            destinationDocumentIdDTO dto1 = new destinationDocumentIdDTO();
+            /*destinationDocumentIdDTO dto1 = new destinationDocumentIdDTO();
             dto1.setIntegrationProperties("{}");
             dto1.setDocumentNumber(Integer.parseInt(destinationDocumentId.getString("documentNumber")));
             dto1.setDocumentType(Integer.parseInt(destinationDocumentId.getString("documentType")));
+             */
+            DocumentIdTransaccionesDTO dto1 = new DocumentIdTransaccionesDTO();
+            dto1.setDocumentNumber(destinationDocumentId.getString("documentNumber"));
+            dto1.setDocumentType(destinationDocumentId.getString("documentType"));
 
+            DocumentIdTransaccionesDTO dto2 = new DocumentIdTransaccionesDTO();
+            dto1.setDocumentNumber(destinationDocumentId.getString("documentNumber"));
+            dto1.setDocumentType(destinationDocumentId.getString("documentType"));
+            /*
             sourceDocumentIdDTO dto2 = new sourceDocumentIdDTO();
             dto2.setDocumentNumber(Integer.parseInt(sourceDocumentId.getString("documentNumber")));
             dto2.setDocumentType(Integer.parseInt(sourceDocumentId.getString("documentType")));
-            dto2.setIntegrationProperties("{}");
+            dto2.setIntegrationProperties("{}");*/
 
-            userDocumentIdDTO dto3 = new userDocumentIdDTO();
+ /*userDocumentIdDTO dto3 = new userDocumentIdDTO();
             dto3.setDocumentNumber(Integer.parseInt(userDocumentId.getString("documentNumber")));
             dto3.setDocumentType(Integer.parseInt(userDocumentId.getString("documentType")));
             dto3.setIntegrationProperties("{}");
+             */
+            DocumentIdTransaccionesDTO dto3 = new DocumentIdTransaccionesDTO();
+            dto1.setDocumentNumber(destinationDocumentId.getString("documentNumber"));
+            dto1.setDocumentType(destinationDocumentId.getString("documentType"));
 
-            System.out.println("dto1:" + dto1);
-            System.out.println("dto2:" + dto2);
-            System.out.println("dto3:" + dto3);
             System.out.println("fechaaaaaaa:" + insertTransaction.getString("valueDate"));
             dto.setSubTransactionTypeId(Integer.parseInt(insertTransaction.getString("subTransactionTypeId")));
             dto.setCurrencyId(insertTransaction.getString("currencyId"));
-            dto.setValueDate(stringTodate(insertTransaction.getString("valueDate")));
+            dto.setValueDate(insertTransaction.getString("valueDate"));
             dto.setTransactionTypeId(insertTransaction.getInt("transactionTypeId"));
             dto.setTransactionStatusId(insertTransaction.getInt("transactionStatusId"));
             dto.setClientBankIdentifier(insertTransaction.getString("clientBankIdentifier"));
@@ -160,19 +173,19 @@ public class TransactionResources {
                 backendOperationResult = dao.transferencias(dto, 3);
             }
             //Si es una trasnferencia SPEI
-            if(dto.getSubTransactionTypeId()== 3 && dto.getTransactionTypeId()==188128){
+            if (dto.getSubTransactionTypeId() == 3 && dto.getTransactionTypeId() == 188128) {
                 //Consumimos mis servicios de SPEI que tengo en otro proyecto(CSN0)
-                String m=dao.EnviarOrdenSPEI(dto.getDebitProductBankIdentifier(),dto.getAmount(),urlPath);
-                if(m.contains("{")){                    
-                    JSONObject jsonSPEI=new JSONObject(m.toLowerCase());
-                    System.out.println("Jaon:"+jsonSPEI);
+                String m = dao.EnviarOrdenSPEI(dto.getDebitProductBankIdentifier(), dto.getAmount(), urlPath);
+                if (m.contains("{")) {
+                    JSONObject jsonSPEI = new JSONObject(m.toLowerCase());
+                    System.out.println("Jaon:" + jsonSPEI);
                     backendOperationResult.setBackendCode("1");
                     backendOperationResult.setBackendMessage(jsonSPEI.getString("mensaje").toUpperCase());
                     backendOperationResult.setTransactionIdenty(String.valueOf(jsonSPEI.getInt("id")));
-                }else{
-                   backendOperationResult.setBackendCode("2");
+                } else {
+                    backendOperationResult.setBackendCode("2");
                     backendOperationResult.setBackendMessage(m);
-                    backendOperationResult.setTransactionIdenty("0");  
+                    backendOperationResult.setTransactionIdenty("0");
                 }
             }
             javax.json.JsonObject build = null;
@@ -200,19 +213,53 @@ public class TransactionResources {
             dao.cerrar();
         }
     }
-
-    public static Date stringTodate(String fecha) {
-        Date date = null;
-        try {
-            SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
-            date = formato.parse(fecha);
-        } catch (ParseException ex) {
-            System.out.println("Error al convertir fecha:" + ex.getMessage());
-        }
-        System.out.println("date:" + date);
-        return date;
-    }
     
-   
+    @POST
+    @Path("/Voucher")
+    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({MediaType.APPLICATION_JSON})
+    public Response voucher(String cadena){
+        JSONObject request=new JSONObject(cadena);
+        String idTransaccion="";
+        try {
+            idTransaccion=request.getString("transactionVoucherIdentifier");
+        } catch (Exception e) {
+            System.out.println("Error al obtener Json Request:"+e.getMessage());
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        }        
+        TransactionDAO dao=new TransactionDAO();
+        JsonObject jsonMessage=new JsonObject();
+        try {
+            String fileRoute=dao.voucherFileCreate(idTransaccion);
+            if(!fileRoute.equals("")){
+                File file = new File(fileRoute);
+            if (file.exists()) {
+                 byte[] input_file = Files.readAllBytes(Paths.get(fileRoute));
+                byte[] encodedBytesFile = Base64.getEncoder().encode(input_file);
+                String bytesFileId = new String(encodedBytesFile);
+                jsonMessage.put("productBankStatementFile",bytesFileId);
+                jsonMessage.put("productBankStatementFileName",file.getName());             
+                
+            } else {
+                jsonMessage.put("Error","EL ARCHIVO QUE INTENTA DESCARGAR NO EXISTE");
+            }
+            }
+        } catch (Exception e) {
+            jsonMessage.put("Error",e.getMessage());
+            return Response.status(Response.Status.BAD_GATEWAY).entity(jsonMessage).build();
+        }finally{
+            dao.cerrar();
+        }
+        return Response.status(Response.Status.OK).entity(jsonMessage).build();
+    }
+
+    public static Timestamp stringTodate(String fecha) {
+        Timestamp time=null;
+        
+        Timestamp tm=Timestamp.valueOf(fecha);
+        time=tm;
+        System.out.println("date:" + time);
+        return time;
+    }
 
 }

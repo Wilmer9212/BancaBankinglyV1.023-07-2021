@@ -6,6 +6,7 @@
 package com.fenoreste.rest.entidades;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.Date;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -29,7 +30,7 @@ public class Transferencias implements Serializable {
     private int idtransaction;
     private Integer subtransactiontypeid;
     private String currencyid;
-    private Date valuedate;
+    private String valuedate;
     private Integer transactiontypeid;
     private Integer transactionstatusid;
     private String clientbankidentifier;
@@ -56,17 +57,17 @@ public class Transferencias implements Serializable {
     private String transactioncostcurrencyid;
     private Double exchangerate;
     private Date fechaejecucion;
-    private Integer destinationdocumentid_documentnumber;
-    private Integer destinationdocumentid_documenttype;
-    private Integer sourcedocumentid_documentnumber;
-    private Integer sourcedocumentid_documenttype;
-    private Integer userdocumentid_documentnumber;
-    private Integer userdocumentid_documenttype;
+    private String destinationdocumentid_documentnumber;
+    private String destinationdocumentid_documenttype;
+    private String sourcedocumentid_documentnumber;
+    private String sourcedocumentid_documenttype;
+    private String userdocumentid_documentnumber;
+    private String userdocumentid_documenttype;
 
     public Transferencias() {
     }
 
-    public Transferencias(int idtransaction, Integer subtransactiontypeid, String currencyid, Date valuedate, Integer transactiontypeid, Integer transactionstatusid, String clientbankidentifier, String debitproductbankidentifier, Integer debitproducttypeid, String debitcurrencyid, String creditproductbankidentifier, Integer creditproducttypeid, String creditcurrencyid, Double amount, String notifyto, Integer notificationchannelid, Integer transactionid, String destinationname, String destinationbank, String description, String bankroutingnumber, String sourcename, String sourcebank, boolean regulationamountexceeded, String sourcefunds, String destinationfunds, Double transactioncost, String transactioncostcurrencyid, Double exchangerate, Date fechaejecucion, Integer destinationdocumentid_documentnumber, Integer destinationdocumentid_documenttype, Integer sourcedocumentid_documentnumber, Integer sourcedocumentid_documenttype, Integer userdocumentid_documentnumber, Integer userdocumentid_documenttype) {
+    public Transferencias(int idtransaction, Integer subtransactiontypeid, String currencyid, String valuedate, Integer transactiontypeid, Integer transactionstatusid, String clientbankidentifier, String debitproductbankidentifier, Integer debitproducttypeid, String debitcurrencyid, String creditproductbankidentifier, Integer creditproducttypeid, String creditcurrencyid, Double amount, String notifyto, Integer notificationchannelid, Integer transactionid, String destinationname, String destinationbank, String description, String bankroutingnumber, String sourcename, String sourcebank, boolean regulationamountexceeded, String sourcefunds, String destinationfunds, Double transactioncost, String transactioncostcurrencyid, Double exchangerate, Date fechaejecucion, String destinationdocumentid_documentnumber, String destinationdocumentid_documenttype, String sourcedocumentid_documentnumber, String sourcedocumentid_documenttype, String userdocumentid_documentnumber, String userdocumentid_documenttype) {
         this.idtransaction = idtransaction;
         this.subtransactiontypeid = subtransactiontypeid;
         this.currencyid = currencyid;
@@ -129,11 +130,11 @@ public class Transferencias implements Serializable {
         this.currencyid = currencyid;
     }
 
-    public Date getValuedate() {
+    public String getValuedate() {
         return valuedate;
     }
 
-    public void setValuedate(Date valuedate) {
+    public void setValuedate(String valuedate) {
         this.valuedate = valuedate;
     }
 
@@ -345,53 +346,56 @@ public class Transferencias implements Serializable {
         this.fechaejecucion = fechaejecucion;
     }
 
-    public Integer getDestinationdocumentid_documentnumber() {
+    public String getDestinationdocumentid_documentnumber() {
         return destinationdocumentid_documentnumber;
     }
 
-    public void setDestinationdocumentid_documentnumber(Integer destinationdocumentid_documentnumber) {
+    public void setDestinationdocumentid_documentnumber(String destinationdocumentid_documentnumber) {
         this.destinationdocumentid_documentnumber = destinationdocumentid_documentnumber;
     }
 
-    public Integer getDestinationdocumentid_documenttype() {
+    public String getDestinationdocumentid_documenttype() {
         return destinationdocumentid_documenttype;
     }
 
-    public void setDestinationdocumentid_documenttype(Integer destinationdocumentid_documenttype) {
+    public void setDestinationdocumentid_documenttype(String destinationdocumentid_documenttype) {
         this.destinationdocumentid_documenttype = destinationdocumentid_documenttype;
     }
 
-    public Integer getSourcedocumentid_documentnumber() {
+    public String getSourcedocumentid_documentnumber() {
         return sourcedocumentid_documentnumber;
     }
 
-    public void setSourcedocumentid_documentnumber(Integer sourcedocumentid_documentnumber) {
+    public void setSourcedocumentid_documentnumber(String sourcedocumentid_documentnumber) {
         this.sourcedocumentid_documentnumber = sourcedocumentid_documentnumber;
     }
 
-    public Integer getSourcedocumentid_documenttype() {
+    public String getSourcedocumentid_documenttype() {
         return sourcedocumentid_documenttype;
     }
 
-    public void setSourcedocumentid_documenttype(Integer sourcedocumentid_documenttype) {
+    public void setSourcedocumentid_documenttype(String sourcedocumentid_documenttype) {
         this.sourcedocumentid_documenttype = sourcedocumentid_documenttype;
     }
 
-    public Integer getUserdocumentid_documentnumber() {
+    public String getUserdocumentid_documentnumber() {
         return userdocumentid_documentnumber;
     }
 
-    public void setUserdocumentid_documentnumber(Integer userdocumentid_documentnumber) {
+    public void setUserdocumentid_documentnumber(String userdocumentid_documentnumber) {
         this.userdocumentid_documentnumber = userdocumentid_documentnumber;
     }
 
-    public Integer getUserdocumentid_documenttype() {
+    public String getUserdocumentid_documenttype() {
         return userdocumentid_documenttype;
     }
 
-    public void setUserdocumentid_documenttype(Integer userdocumentid_documenttype) {
+    public void setUserdocumentid_documenttype(String userdocumentid_documenttype) {
         this.userdocumentid_documenttype = userdocumentid_documenttype;
     }
+
+    
+    
 
     @Override
     public String toString() {

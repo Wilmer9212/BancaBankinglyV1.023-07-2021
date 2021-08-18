@@ -17,6 +17,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.Date;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 
 /**
  *
@@ -28,6 +30,7 @@ public class MetodosUtil {
     saiFunciones saiFunciones;
     OrigenesServiceLocal origenesService;
     
+    EntityManagerFactory emf=AbstractFacade.conexion();
     public boolean ServicioActivo(String idTabla) {
         try {
             LocalTime h0 = LocalTime.parse("00:00");
@@ -94,7 +97,18 @@ public class MetodosUtil {
         }
         return false;
     }
-    
+    public Date StringToDate(String fechaP){
+        SimpleDateFormat sdf=new SimpleDateFormat("dd/MM/yyyy");
+        Date date=null;
+        try {
+            date=sdf.parse(fechaP);
+            
+        } catch (Exception e) {
+            System.out.println("Error:"+e.getMessage());
+            e.printStackTrace();
+        }
+        return date;       
+    }
     
     
     

@@ -5,15 +5,14 @@
  */
 package com.fenoreste.rest.WsTDD;
 
+import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK;
 import java.io.Serializable;
 import java.util.Objects;
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  *
  * @author Elliot
  */
-@XmlRootElement(name = "wsSiscoopFoliosTarjetas")
+
 public class WsSiscoopFoliosTarjetasDTO implements Serializable {
 
     protected WsSiscoopFoliosTarjetasPK wsSiscoopFoliosTarjetasPK;
