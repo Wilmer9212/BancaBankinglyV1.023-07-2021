@@ -7,6 +7,7 @@ package com.fenoreste.rest.RESTservices;
 
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.Util.AbstractFacade_1;
+import com.fenoreste.rest.dao.CustomerDAO;
 import com.fenoreste.rest.entidades.Auxiliares;
 import com.fenoreste.rest.entidades.Persona;
 import com.fenoreste.rest.entidades.usuarios_banca_bankingly;
@@ -28,7 +29,7 @@ import org.json.JSONObject;
  *
  * @author Elliot
  */
-@Path("Test")
+@Path("/Test")
 public class TestResources {
 
     @POST
@@ -58,5 +59,22 @@ public class TestResources {
         }
         return Response.status(Response.Status.OK).entity(jsonOb).build();
         
+    }
+    
+    
+    @GET
+    @Path("/testing")    
+    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({MediaType.APPLICATION_JSON})
+    public Response test(String cadenaJson) {
+        CustomerDAO dao=new CustomerDAO();
+        try {
+            dao.pruebasPrezzta();
+        } catch (Exception e) {
+            dao.cerrar();
+        }finally{
+            dao.cerrar();
+        }
+        return null;
     }
 }

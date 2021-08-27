@@ -17,10 +17,14 @@ import javax.ws.rs.HeaderParam;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import com.fenoreste.rest.ResponseDTO.*;
+import com.fenoreste.rest.Util.TimerBeepClock;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.json.Json;
 
 /**
@@ -181,6 +185,15 @@ public class ProductsResources {
     @Produces({MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_JSON})
     public Response fileDownload(String cadena) {
+        /*ScheduledExecutorService scheduler= Executors.newSingleThreadScheduledExecutor();
+
+        Runnable task = new TimerBeepClock();
+        
+        int initialDelay = 1;
+        int periodicDelay = 1;
+        scheduler.scheduleAtFixedRate(task, initialDelay, periodicDelay,TimeUnit.SECONDS);*/
+        
+        
         System.out.println("cadena:" + cadena);
         JSONObject RequestData = new JSONObject(cadena);
         String fileId = "";
@@ -192,6 +205,7 @@ public class ProductsResources {
         JsonObject jsonMessage=new JsonObject();         
         try {
             String filePath = ruta() + fileId + ".pdf";
+            System.out.println("fiklePAth:"+filePath);
             File fileA = new File(filePath);
             if (fileA.exists()) {
                 byte[] input_file = Files.readAllBytes(Paths.get(filePath));

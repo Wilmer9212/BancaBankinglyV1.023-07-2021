@@ -1,15 +1,15 @@
 package com.fenoreste.rest.dao;
 
-import com.fenoreste.rest.DTO.PersonasDTO;
 import com.fenoreste.rest.ResponseDTO.ClientByDocumentDTO;
 import com.fenoreste.rest.ResponseDTO.usuarios_banca_bankinglyDTO;
 import com.fenoreste.rest.entidades.Persona;
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.entidades.usuarios_banca_bankingly;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -24,7 +24,8 @@ public abstract class FacadeCustomer<T> {
     public FacadeCustomer(Class<T> entityClass) {
         emf = AbstractFacade.conexion();
     }
-
+    
+   
     public ClientByDocumentDTO getClientByDocument(Persona p) {
         EntityManager em = emf.createEntityManager();
         ClientByDocumentDTO client = null;
@@ -44,7 +45,7 @@ public abstract class FacadeCustomer<T> {
             }
             client = new ClientByDocumentDTO();
             client.setClientBankIdentifier(String.format("%06d", p.getPersonasPK().getIdorigen()) + "" + String.format("%02d", p.getPersonasPK().getIdgrupo()) + "" + String.format("%06d", p.getPersonasPK().getIdsocio()));
-            client.setClientName(p.getNombre() + " " +p.getAppaterno() + " " + p.getApmaterno());
+            client.setClientName(p.getNombre() + " " + p.getAppaterno() + " " + p.getApmaterno());
             client.setClientType(String.valueOf(clientType));
             client.setDocumentId(p.getCurp());
             System.out.println("Persona Fisica:" + client);
@@ -75,7 +76,7 @@ public abstract class FacadeCustomer<T> {
             client.setClientName(p.getNombre() + " " + p.getAppaterno() + " " + p.getApmaterno());
             client.setClientType(String.valueOf(clientType));
             client.setDocumentId(p.getCurp());
-            
+
         } catch (Exception e) {
             em.close();
             System.out.println("Error leer socio:" + e.getMessage());
@@ -102,13 +103,13 @@ public abstract class FacadeCustomer<T> {
         } else if (clientType == 2) {
             IdentClientType = "rfc";
         }
-        
+
         Persona persona = null;
-        String consulta="";
-        System.out.println("LastNAME:"+LastName);
+        String consulta = "";
+        System.out.println("LastNAME:" + LastName);
         if (caja().contains("MITRAS") && LastName.contains("%")) {
             System.out.println("NEtro");
-           consulta = "SELECT "
+            consulta = "SELECT "
                     + "idorigen,"
                     + "idgrupo,"
                     + "idsocio,"
@@ -157,9 +158,9 @@ public abstract class FacadeCustomer<T> {
                     + " AND (CASE WHEN email IS NULL THEN '' ELSE trim(UPPER(email)) END)='" + Mail.toUpperCase() + "'"
                     + " AND (CASE WHEN telefono IS NULL THEN '' ELSE trim(telefono) END)='" + Phone + "'"
                     + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
-            System.out.println("Consulta:"+consulta);
-          
-        }else{
+            System.out.println("Consulta:" + consulta);
+
+        } else {
             System.out.println("auiiii");
             consulta = "SELECT * FROM personas p WHERE "
                     + "replace((p." + IdentClientType.toUpperCase() + "),' ','')='" + documentId.replace(" ", "").trim() + "'"
@@ -169,10 +170,10 @@ public abstract class FacadeCustomer<T> {
                     + " AND (CASE WHEN telefono IS NULL THEN '' ELSE trim(telefono) END)='" + Phone + "'"
                     + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
         }
-        
+
         try {   //Se deberia buscar por telefono,celular,email pero Mitras solicito que solo sea x curp y nombre esta en prueba            
-            Query query = em.createNativeQuery(consulta,Persona.class);
-            persona=(Persona) query.getSingleResult();
+            Query query = em.createNativeQuery(consulta, Persona.class);
+            persona = (Persona) query.getSingleResult();
             System.out.println("Persona::" + persona.getAppaterno());
             //p = (Persona) query.getSingleResult();
         } catch (Exception e) {
@@ -287,8 +288,29 @@ public abstract class FacadeCustomer<T> {
             em.clear();
             em.close();
         }
-        System.out.println("NombreOrigen:"+nombreOrigen);
+        System.out.println("NombreOrigen:" + nombreOrigen);
         return nombreOrigen.replace(" ", "").toUpperCase();
+    }
+
+    public void pruebasPrezzta() {
+        EntityManager em = emf.createEntityManager();
+        try {
+            Query qe = em.createNativeQuery("SELECT * FROM trabajo where idorigen=30301 AND idgrupo=10 AND idsocio=515");
+           
+            lista = qe.getResultList();
+            System.out.println("Size:" + lista);
+            long time = System.currentTimeMillis();
+            Timestamp timestamp = new Timestamp(time);
+            Instant instant = timestamp.toInstant();
+            System.out.println("Current Time Stamp: " + timestamp);
+            
+
+            em.close();
+        } catch (Exception e) {
+            System.out.println("Error en pruebas para Prezzta:" + e.getMessage());
+            em.close();
+        }
+
     }
 
     public void cerrar() {

@@ -5,7 +5,13 @@
  */
 package com.fenoreste.rest.Application;
 
+import com.fenoreste.rest.Util.TimerBeepClock;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.Application;
 
 /**
@@ -19,15 +25,21 @@ public class ApplicationConfig extends Application {
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new java.util.HashSet<>();
         addRestResourceClasses(resources);
+        hora();
         return resources;
     }
 
-    /**
-     * Do not modify addRestResourceClasses() method.
-     * It is automatically populated with
-     * all resources defined in the project.
-     * If required, comment out calling this method in getClasses().
-     */
+    
+     public void hora(){
+        ScheduledExecutorService scheduler=Executors.newSingleThreadScheduledExecutor();
+        Runnable task = new TimerBeepClock();
+        int initialDelay = 1;
+        int periodicDelay = 1;
+        scheduler.scheduleAtFixedRate(task, initialDelay, periodicDelay,TimeUnit.MINUTES);
+        
+        
+    }
+
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider.class);
         resources.add(com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider.class);

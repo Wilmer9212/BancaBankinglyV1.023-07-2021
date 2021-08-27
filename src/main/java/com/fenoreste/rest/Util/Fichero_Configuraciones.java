@@ -63,10 +63,10 @@ public class Fichero_Configuraciones {
 
     private void leer_lineas(String linea) {
         if (linea.contains("base_de_datos")) {
-            nbd = linea.split("=")[1];
+            nbd = linea.split("=")[1].trim();
         }
         if (linea.contains("direccion_servidor")) {
-            ipbd = linea.split("=")[1];
+            ipbd = linea.split("=")[1].trim();
         }
     }
 
