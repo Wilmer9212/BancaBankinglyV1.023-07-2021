@@ -17,7 +17,7 @@ import javax.persistence.Table;
  * @author wilmer
  */
 @Entity
-@Table(name = "procesa_movs_banca_movil")
+@Table(name = "bankingly_movimientos_ca")
 public class Procesa_pago_movimientos implements Serializable {
     @EmbeddedId
     protected AuxiliaresPK auxiliaresPK;
@@ -39,19 +39,19 @@ public class Procesa_pago_movimientos implements Serializable {
     private Integer cargoabono;
     @Column(name = "monto")
     private Double monto;
+    @Column(name = "idcuenta")
+    private String idcuenta;
     @Column(name = "iva")
     private Double iva;
     @Column(name = "tipo_amort")
-    private Integer tipo_amort;
-    @Column(name = "aplicado")
-    private boolean aplicado;
+    private Integer tipo_amort;   
     @Column(name = "sai_aux")
     private String sai_aux;
 
     public Procesa_pago_movimientos() {
     }
 
-    public Procesa_pago_movimientos(AuxiliaresPK auxiliaresPK, Timestamp fecha, Integer idusuario, String sesion, String referencia, Integer idorigen, Integer idgrupo, Integer idsocio, Integer cargoabono, Double monto, Double iva, Integer tipo_amort, boolean aplicado, String sai_aux) {
+    public Procesa_pago_movimientos(AuxiliaresPK auxiliaresPK, Timestamp fecha, Integer idusuario, String sesion, String referencia, Integer idorigen, Integer idgrupo, Integer idsocio, Integer cargoabono, Double monto, String idcuenta, Double iva, Integer tipo_amort, String sai_aux) {
         this.auxiliaresPK = auxiliaresPK;
         this.fecha = fecha;
         this.idusuario = idusuario;
@@ -62,9 +62,9 @@ public class Procesa_pago_movimientos implements Serializable {
         this.idsocio = idsocio;
         this.cargoabono = cargoabono;
         this.monto = monto;
+        this.idcuenta = idcuenta;
         this.iva = iva;
         this.tipo_amort = tipo_amort;
-        this.aplicado = aplicado;
         this.sai_aux = sai_aux;
     }
 
@@ -148,6 +148,14 @@ public class Procesa_pago_movimientos implements Serializable {
         this.monto = monto;
     }
 
+    public String getIdcuenta() {
+        return idcuenta;
+    }
+
+    public void setIdcuenta(String idcuenta) {
+        this.idcuenta = idcuenta;
+    }
+
     public Double getIva() {
         return iva;
     }
@@ -164,14 +172,6 @@ public class Procesa_pago_movimientos implements Serializable {
         this.tipo_amort = tipo_amort;
     }
 
-    public boolean isAplicado() {
-        return aplicado;
-    }
-
-    public void setAplicado(boolean aplicado) {
-        this.aplicado = aplicado;
-    }
-
     public String getSai_aux() {
         return sai_aux;
     }
@@ -182,8 +182,9 @@ public class Procesa_pago_movimientos implements Serializable {
 
     @Override
     public String toString() {
-        return "Procesa_pago_movimientos{" + "auxiliaresPK=" + auxiliaresPK + ", fecha=" + fecha + ", idusuario=" + idusuario + ", sesion=" + sesion + ", referencia=" + referencia + ", idorigen=" + idorigen + ", idgrupo=" + idgrupo + ", idsocio=" + idsocio + ", cargoabono=" + cargoabono + ", monto=" + monto + ", iva=" + iva + ", tipo_amort=" + tipo_amort + ", aplicado=" + aplicado + ", sai_aux=" + sai_aux + '}';
+        return "Procesa_pago_movimientos{" + "auxiliaresPK=" + auxiliaresPK + ", fecha=" + fecha + ", idusuario=" + idusuario + ", sesion=" + sesion + ", referencia=" + referencia + ", idorigen=" + idorigen + ", idgrupo=" + idgrupo + ", idsocio=" + idsocio + ", cargoabono=" + cargoabono + ", monto=" + monto + ", idcuenta=" + idcuenta + ", iva=" + iva + ", tipo_amort=" + tipo_amort + ", sai_aux=" + sai_aux + '}';
     }
+
     
     private static final long serialVersionUID = 1L;
 

@@ -17,7 +17,6 @@ import javax.persistence.Embeddable;
 @Cacheable(false)
 @Embeddable
 public class PersonasPK implements Serializable {
-
     @Column(name = "idorigen")
     private int idorigen;
     @Column(name = "idgrupo")

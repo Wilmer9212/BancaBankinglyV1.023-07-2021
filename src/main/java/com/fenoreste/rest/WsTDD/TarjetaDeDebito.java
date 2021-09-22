@@ -2,25 +2,16 @@ package com.fenoreste.rest.WsTDD;
 
 import com.fenoreste.rest.DTO.TablasDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
-import com.fenoreste.rest.entidades.Auxiliares;
-import com.fenoreste.rest.entidades.AuxiliaresPK;
-import com.fenoreste.rest.entidades.SaldoTdd;
 import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;
-import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetas;
 import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetas1;
-import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK;
 import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK1;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
 import com.syc.ws.endpoint.siscoop.DoWithdrawalAccountResponse;
 import com.syc.ws.endpoint.siscoop.LoadBalanceResponse;
-import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 import javax.persistence.Query;
 import wssyctdd.SiscoopTDD;
 
@@ -30,10 +21,7 @@ import wssyctdd.SiscoopTDD;
  */
 public class TarjetaDeDebito {
     // CONSULTA Y ACTUALIZA EL SALDO DE LA TarjetaDeDebito
-
-    public Tablas productoTddWS() {
-        EntityManagerFactory emf = AbstractFacade.conexion();
-        EntityManager em = emf.createEntityManager();
+      public Tablas productoTddWS(EntityManager em) {
         try {
             TablasPK pkt = new TablasPK("identificador_uso_tdd", "activa");
             Tablas tb = em.find(Tablas.class, pkt);
@@ -44,23 +32,20 @@ public class TarjetaDeDebito {
             }
         } catch (Exception e) {
             em.close();
-            emf.close();
             System.out.println("No existe producto activo para tdd:" + e.getMessage());
         } finally {
             em.close();
-            emf.close();
-        }
+         }
         return null;
     }
 
     // PRODUCTO VALIDO PARA LA TDD
-    public TablasDTO productoTddwebservice() {
-        EntityManagerFactory emf = AbstractFacade.conexion();
-        EntityManager em = emf.createEntityManager();
+    public TablasDTO productoTddwebservice(EntityManager em) {
         TablasDTO tablaDTO = new TablasDTO();
+        System.out.println("Llegando a buscar el producto para Tarjeta de debito....");
         try {
             // Producto de la tdd
-            TablasPK tablasPK = new TablasPK("param", "producto_para_webservice");
+            TablasPK tablasPK = new TablasPK("bankingly_banca_movil", "producto_tdd");
             Tablas tabla = em.find(Tablas.class, tablasPK);
             if (tabla != null) {
                 tablaDTO.setDato1(tabla.getDato1());
@@ -69,31 +54,19 @@ public class TarjetaDeDebito {
                 tablaDTO.setDato4(tabla.getDato3());
                 tablaDTO.setDato5(tabla.getDato5());
                 System.out.println("TABLA DE PRODUCTO PARA WS:" + tablaDTO);
-                return tablaDTO;
-            } else {
-                return null;
+
             }
-        } catch (NumberFormatException e) {
-            em.close();
-            emf.close();
+        } catch (NumberFormatException e) {            
             System.out.println("Error en consultar producto en producto_para_webservice de TarjetaDeDebito." + e.getMessage());
-        } finally {
-            em.close();
-            emf.close();
+            return tablaDTO;
         }
-        return null;
+        return tablaDTO;
     }
 
-    public WsSiscoopFoliosTarjetas1 buscaTarjetaTDD(int idorigenp, int idproducto, int idauxiliar) {
-        System.out.println("Llego a buscar tarjeta por cuentas");
-        EntityManagerFactory emf = AbstractFacade.conexion();
-        EntityManager em = emf.createEntityManager();
-        //EntityManagerFactory emf=wsSiscoopFoliosTarjetasFacade.getEntityManager();
-        //entity=emf.createEntityManager();
+    public WsSiscoopFoliosTarjetas1 buscaTarjetaTDD(int idorigenp, int idproducto, int idauxiliar,EntityManager em) {
         WsSiscoopFoliosTarjetasPK1 foliosPK1 = new WsSiscoopFoliosTarjetasPK1(idorigenp, idproducto, idauxiliar);
         WsSiscoopFoliosTarjetas1 wsSiscoopFoliosTarjetas = new WsSiscoopFoliosTarjetas1();
         try {
-            System.out.println("Llegando a consulta principal");
             String consulta = " SELECT w.* "
                     + "         FROM ws_siscoop_folios_tarjetas w "
                     + "         INNER JOIN ws_siscoop_tarjetas td using(idtarjeta)"
@@ -105,8 +78,6 @@ public class TarjetaDeDebito {
             query.setParameter(1, idorigenp);
             query.setParameter(2, idproducto);
             query.setParameter(3, idauxiliar);
-            System.out.println("Consulta:" + consulta);
-            List<Object[]> lista = query.getResultList();
             wsSiscoopFoliosTarjetas = (WsSiscoopFoliosTarjetas1) query.getSingleResult();
             if (wsSiscoopFoliosTarjetas != null) {
                 wsSiscoopFoliosTarjetas.setActiva(wsSiscoopFoliosTarjetas.getActiva());
@@ -115,60 +86,41 @@ public class TarjetaDeDebito {
                 wsSiscoopFoliosTarjetas.setWsSiscoopFoliosTarjetasPK(foliosPK1);
             }
         } catch (Exception e) {
-            em.close();
-            emf.close();
-            System.out.println("Error en buscaTarjetaTDD de WsSiscoopFoliosTarjetasService: " + e.getMessage());
-        } finally {
-            em.close();
-            emf.close();
+            System.out.println("Error en buscaTarjetaTDD de WsSiscoopFoliosTarjetas: " + e.getMessage());  
+            return wsSiscoopFoliosTarjetas;
         }
         return wsSiscoopFoliosTarjetas;
     }
-
-    public BalanceQueryResponseDto saldoTDD(WsSiscoopFoliosTarjetasPK1 foliosPK) {
-        EntityManagerFactory emf = AbstractFacade.conexion();
-        EntityManager em = emf.createEntityManager();
+    
+    public BalanceQueryResponseDto saldoTDD(WsSiscoopFoliosTarjetasPK1 foliosPK,EntityManager em) {     
         BalanceQueryResponseDto response = new BalanceQueryResponseDto();
         WsSiscoopFoliosTarjetas1 tarjeta = em.find(WsSiscoopFoliosTarjetas1.class, foliosPK);
         try {
-            System.out.println("Estatus tarjeta en buscar saldo:" + tarjeta.getActiva());
+            System.out.println("Estatus de la tarjeta de debito:" + tarjeta.getActiva());
             if (tarjeta.getActiva()) {
-                /*response.setAvailableAmount(20);
+                response.setAvailableAmount(20);
                 response.setCode(1);
-                response.setDescription("activa");*/
+                response.setDescription("activa");
                 response = conexionSiscoop().getSiscoop().getBalanceQuery(tarjeta.getIdtarjeta());
-                System.out.println("response:" + response.getDescription());
+                
             } else {
                 response.setDescription("La tarjeta esta inactiva: " + tarjeta.getIdtarjeta());
             }
         } catch (Exception e) {
-            em.close();
-            emf.close();
             System.out.println("Error al buscar Saldo tdd:" + e.getMessage());
-        } finally {
-            em.clear();
-            em.close();
-            emf.close();
-        }
-
-        System.out.println("responseDTO:" + response);
+        } 
         return response;
     }
 
     public DoWithdrawalAccountResponse.Return retiroTDD(WsSiscoopFoliosTarjetas1 tarjeta, Double monto) {
         DoWithdrawalAccountResponse.Return doWithdrawalAccountResponse = new DoWithdrawalAccountResponse.Return();
-        boolean retiro = false;
+        System.out.println("WS...Restiro");
         try {
             /*doWithdrawalAccountResponse.setAuthorization("");
             doWithdrawalAccountResponse.setBalance(200);
-            doWithdrawalAccountResponse.setCode(1);*/ 
+            doWithdrawalAccountResponse.setCode(1);*/
             doWithdrawalAccountResponse=conexionSiscoop().getSiscoop().doWithdrawalAccount(tarjeta.getIdtarjeta(), monto);
-            if (doWithdrawalAccountResponse.getCode() == 0) { // 0 = Existe error
-                retiro = false;
-            } else {
-                retiro = true;
-            }
-        } catch (Exception e) {
+        } catch (Exception e) {         
             return doWithdrawalAccountResponse;
         }
         return doWithdrawalAccountResponse;
@@ -179,28 +131,24 @@ public class TarjetaDeDebito {
         EntityManager em = emf.createEntityManager();
         SiscoopTDD conexionWSTDD = null;
         try {
+            //Obtengo el usuario y la contraseña para conectar al WS de Alestra        
             TablasPK tablasPK = new TablasPK("siscoop_banca_movil", "wsdl_parametros");
             Tablas parametros = em.find(Tablas.class, tablasPK);
             if (parametros != null) {
                 System.out.println("Conectando ws ALestra....");
                 conexionWSTDD = new SiscoopTDD(parametros.getDato1(), parametros.getDato2());
+                
             }
-        } catch (Exception e) {
-            em.close();
-            emf.close();
+        } catch (Exception e) {     
             System.out.println("No existen parametros para conexion:" + e.getMessage());
-        } finally {
-            em.close();
-            emf.close();
-        }
+        } 
         return conexionWSTDD;
     }
 
-    public void actualizarSaldoTDD(SaldoTddPK saldoTddPK, Double saldo) {
-        EntityManagerFactory emf = AbstractFacade.conexion();
-        EntityManager em = emf.createEntityManager();
+    public void actualizarSaldoTDD(SaldoTddPK saldoTddPK, Double saldo,EntityManager em) {
+  
         try {
-             if (saldo > 0) {
+            if (saldo > 0) {
                 long time = System.currentTimeMillis();
                 Timestamp timestamp = new Timestamp(time);
                 //DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
@@ -233,13 +181,8 @@ public class TarjetaDeDebito {
                 return true;
             }*/
         } catch (Exception e) {
-            em.close();
-            emf.close();
             e.printStackTrace();
             System.out.println("Error al actualizar saldo de la TDD:" + e.getMessage());
-        } finally {
-            em.close();
-            emf.close();
         }
     }
 
@@ -249,5 +192,7 @@ public class TarjetaDeDebito {
         loadBalanceResponse.setDescription("Connect timed out");
         return false;
     }
+    
+    
 
 }

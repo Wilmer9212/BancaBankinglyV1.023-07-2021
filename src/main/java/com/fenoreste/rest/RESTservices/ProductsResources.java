@@ -17,15 +17,14 @@ import javax.ws.rs.HeaderParam;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import com.fenoreste.rest.ResponseDTO.*;
-import com.fenoreste.rest.Util.TimerBeepClock;
+import com.fenoreste.rest.dao.DAOGeneral;
+import com.fenoreste.rest.dao.MetodosUtil;
+import com.fenoreste.rest.dao.MetodosUtilDAO;
 import java.io.File;
+import java.io.FileFilter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import javax.json.Json;
 
 /**
  *
@@ -102,6 +101,7 @@ public class ProductsResources {
     @Produces({MediaType.APPLICATION_JSON + ";charset=utf-8"})
     @Consumes({MediaType.APPLICATION_JSON + ";charset=utf-8"})
     public Response getProductsConsolidatedPosition(String cadena) {
+              
         /*SOLO FALTA DEL CATALOGO CAN TRANSACT ID*/
         System.out.println("Cadena:" + cadena);
         String ClientBankIdentifiers = "", ProductBankIdentifiers = "";
@@ -163,6 +163,14 @@ public class ProductsResources {
         String clientBankIdentifier_ = "";
         String productBankIdentifier_ = "";
         int productType_ = 0;
+        
+        //MetodosUtilDAO mt=new MetodosUtilDAO();
+        /*if(mt.actividad()==false){
+            JsonObject actividad=new JsonObject();
+            actividad.put("Error","Su zona horaria no coincide con la del servidor.");
+            return Response.status(Response.Status.GATEWAY_TIMEOUT).entity(actividad).build();
+        }*/
+        
         ProductsDAO dao = new ProductsDAO();
         try {
             clientBankIdentifier_ = request_.getString("clientBankIdentifier");
@@ -171,15 +179,38 @@ public class ProductsResources {
             List<ProductBankStatementDTO> listaECuentas = dao.statements(clientBankIdentifier_, productBankIdentifier_, productType_);
             JsonObject json = new JsonObject();
             json.put("bankStatements", listaECuentas);
+           
+                eliminarPorExtension(ruta(),"txt");
+                eliminarPorExtension(ruta(),"html");
+            
             return Response.status(Response.Status.OK).entity(json).build();
         } catch (Exception e) {
+            dao.cerrar();
             System.out.println("Error al leer json:" + e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         } finally {
+            System.out.println("saliooooooooooooooooooooooooooooooooooooooooooo");
             dao.cerrar();
         }
     }
-
+     
+    
+      //Metodo para eliminar todos los pdf 
+    public static void eliminarPorExtension(String path, final String extension) {
+        File[] archivos = new File(path).listFiles(new FileFilter() {
+            public boolean accept(File archivo) {
+                if (archivo.isFile()) {
+                    return archivo.getName().endsWith('.' + extension);
+                }
+                return false;
+            }
+        });
+        for (File archivo : archivos) {
+            archivo.delete();
+        }
+    }
+    
+    
     @POST
     @Path("/BankStatementsFile")
     @Produces({MediaType.APPLICATION_JSON})

@@ -5,6 +5,7 @@
  */
 package com.fenoreste.rest.RESTservices;
 
+import com.fenoreste.rest.Request.RequestDataOrdenPagoDTO;
 import com.fenoreste.rest.ResponseDTO.BackendOperationResultDTO;
 import com.fenoreste.rest.ResponseDTO.DocumentIdTransaccionesDTO;
 import com.fenoreste.rest.ResponseDTO.TransactionToOwnAccountsDTO;
@@ -24,10 +25,8 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import org.json.JSONObject;
 
 /**
@@ -47,10 +46,10 @@ public class TransactionResources {
     @POST
     @Produces({MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_JSON})
-    public Response insertTransaction(String cadena, @HeaderParam("authorization") String authCredentials, @Context UriInfo urlPath) throws IOException {
-        backendOperationResult.setBackendCode("500");
-        backendOperationResult.setBackendMessage("");
-        backendOperationResult.setBackendReference("0");
+    public Response insertTransaction(String cadena, @HeaderParam("authorization") String authCredentials /*, @Context UriInfo urlPath*/) throws IOException {
+        backendOperationResult.setBackendCode("2");
+        backendOperationResult.setBackendMessage("Error en transaccion");
+        backendOperationResult.setBackendReference(null);
         backendOperationResult.setIntegrationProperties("{}");
         backendOperationResult.setIsError(true);
         backendOperationResult.setTransactionIdenty("0");
@@ -70,6 +69,7 @@ public class TransactionResources {
                 Obtenemos el request y lo pasamos a DTO
         =================================================================*/
         TransactionToOwnAccountsDTO dto = new TransactionToOwnAccountsDTO();
+          javax.json.JsonObject build = null;
         try {
 
             JSONObject insertTransaction = jsonRecibido.getJSONObject("inserTransactionInput");
@@ -162,33 +162,49 @@ public class TransactionResources {
 
             //Si subtransactionType es 1 y transactionType es 1: El tipo de transaccion es es entre mis cuentas
             if (dto.getSubTransactionTypeId() == 1 && dto.getTransactionTypeId() == 1) {
-                backendOperationResult = dao.transferencias(dto, 1);
+                backendOperationResult = dao.transferencias(dto, 1,null);
             }
             //Si subtransactionType es 2 y transactionType es 1: El tipo de transaccion es a terceros
             if (dto.getSubTransactionTypeId() == 2 && dto.getTransactionTypeId() == 1) {
-                backendOperationResult = dao.transferencias(dto, 2);
+                backendOperationResult = dao.transferencias(dto, 2,null);
             }
             //Si subtransactionType es 9 y transactionType es 6: El tipo de transaccion es es un pago a prestamos 
             if (dto.getSubTransactionTypeId() == 9 && dto.getTransactionTypeId() == 6) {
-                backendOperationResult = dao.transferencias(dto, 3);
+                backendOperationResult = dao.transferencias(dto, 3,null);
+            }
+            //Si es un pago a prestamo tercero
+            if (dto.getSubTransactionTypeId() == 10 && dto.getTransactionTypeId() == 6) {
+                backendOperationResult = dao.transferencias(dto, 4,null);
             }
             //Si es una trasnferencia SPEI
             if (dto.getSubTransactionTypeId() == 3 && dto.getTransactionTypeId() == 188128) {
                 //Consumimos mis servicios de SPEI que tengo en otro proyecto(CSN0)
-                String m = dao.EnviarOrdenSPEI(dto.getDebitProductBankIdentifier(), dto.getAmount(), urlPath);
-                if (m.contains("{")) {
-                    JSONObject jsonSPEI = new JSONObject(m.toLowerCase());
-                    System.out.println("Jaon:" + jsonSPEI);
-                    backendOperationResult.setBackendCode("1");
-                    backendOperationResult.setBackendMessage(jsonSPEI.getString("mensaje").toUpperCase());
-                    backendOperationResult.setTransactionIdenty(String.valueOf(jsonSPEI.getInt("id")));
-                } else {
-                    backendOperationResult.setBackendCode("2");
-                    backendOperationResult.setBackendMessage(m);
-                    backendOperationResult.setTransactionIdenty("0");
-                }
+                RequestDataOrdenPagoDTO ordenReque=new RequestDataOrdenPagoDTO();
+                
+                ordenReque.setClienteClabe(dto.getDebitProductBankIdentifier());//Opa origen como cuenta clabe en el metodo spei se busca la clave
+                ordenReque.setConceptoPago(dto.getDescription());
+                ordenReque.setCuentaBeneficiario(dto.getCreditProductBankIdentifier());//La clabe del beneficiario
+                ordenReque.setInstitucionContraparte(dto.getDestinationBank());
+                ordenReque.setMonto(dto.getAmount());
+                ordenReque.setNombreBeneficiario(dto.getDestinationName());
+                ordenReque.setRfcCurpBeneficiario(dto.getCreditProductBankIdentifier());
+                ordenReque.setOrdernante(dto.getClientBankIdentifier());   
+                
+                backendOperationResult=dao.transferencias(dto,5, ordenReque);
+                
+                
+                /*
+                requestSPEI.setBanco(dto.getDestinationBank());//Banco destino
+                requestSPEI.setBeneficiario(dto.getDestinationName());//Nombre del beneficiario
+                requestSPEI.setCliente(dto.getClientBankIdentifier());//Socio que enviar la orden
+                requestSPEI.setConceptoPago(dto.getDescription());//Concepto Pago
+                requestSPEI.setCuentaBeneficiario(dto.getCreditProductBankIdentifier());//Clabe del detinatario
+                requestSPEI.setMonto(dto.getAmount());
+                requestSPEI.setRfcCurpBeneficiario(dto.getSourceName());
+                requestSPEI.setRfcCurpBeneficiario(dto.getDestinationDocumentId().getDocumentNumber());*/
+                
             }
-            javax.json.JsonObject build = null;
+          
 
             build = Json.createObjectBuilder().add("InsertTransactionResult", Json.createObjectBuilder()
                     .add("backendOperationResult", Json.createObjectBuilder()
@@ -200,18 +216,19 @@ public class TransactionResources {
                             .add("transactionIdenty", backendOperationResult.getTransactionIdenty())).build())
                     .build();
 
-            if (backendOperationResult.getBackendCode().equals("1")) {
+           /* if (backendOperationResult.getBackendCode().equals("1")) {
                 return Response.status(Response.Status.OK).entity(build).build();
             } else {
                 return Response.status(Response.Status.BAD_GATEWAY).entity(build).build();
-            }
-
+            }*/
+        
         } catch (Exception e) {
-            System.out.println("aqui");
+            dao.cerrar();
             return Response.status(Response.Status.BAD_GATEWAY).entity(e.getMessage()).build();
-        } finally {
+        } finally {            
             dao.cerrar();
         }
+        return Response.status(Response.Status.OK).entity(build).build();
     }
     
     @POST

@@ -4,12 +4,15 @@ import com.fenoreste.rest.ResponseDTO.ClientByDocumentDTO;
 import com.fenoreste.rest.ResponseDTO.usuarios_banca_bankinglyDTO;
 import com.fenoreste.rest.entidades.Persona;
 import com.fenoreste.rest.Util.AbstractFacade;
-import com.fenoreste.rest.entidades.usuarios_banca_bankingly;
+import com.fenoreste.rest.entidades.Auxiliares;
+import com.fenoreste.rest.entidades.PersonasPK;
+import com.fenoreste.rest.entidades.Tablas;
+import com.fenoreste.rest.entidades.TablasPK;
+import com.fenoreste.rest.entidades.banca_movil_usuarios;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -18,15 +21,15 @@ import javax.persistence.Query;
 public abstract class FacadeCustomer<T> {
 
     private static EntityManagerFactory emf;
+    DAOGeneral metodosGeneral = new DAOGeneral();
 
     List<Object[]> lista = null;
 
     public FacadeCustomer(Class<T> entityClass) {
         emf = AbstractFacade.conexion();
     }
-    
-   
-    public ClientByDocumentDTO getClientByDocument(Persona p) {
+
+    public ClientByDocumentDTO getClientByDocument(Persona p, String username) {
         EntityManager em = emf.createEntityManager();
         ClientByDocumentDTO client = null;
         usuarios_banca_bankinglyDTO socio = null;
@@ -48,6 +51,7 @@ public abstract class FacadeCustomer<T> {
             client.setClientName(p.getNombre() + " " + p.getAppaterno() + " " + p.getApmaterno());
             client.setClientType(String.valueOf(clientType));
             client.setDocumentId(p.getCurp());
+
             System.out.println("Persona Fisica:" + client);
         } catch (Exception e) {
             em.close();
@@ -104,11 +108,11 @@ public abstract class FacadeCustomer<T> {
             IdentClientType = "rfc";
         }
 
-        Persona persona = null;
+        Persona persona = new Persona();
         String consulta = "";
         System.out.println("LastNAME:" + LastName);
-        if (caja().contains("MITRAS") && LastName.contains("%")) {
-            System.out.println("NEtro");
+        persona.setNombre("SIN DATOS ");
+        if (metodosGeneral.obtenerOrigen().contains("MITRAS") && LastName.contains("%")) {
             consulta = "SELECT "
                     + "idorigen,"
                     + "idgrupo,"
@@ -153,28 +157,30 @@ public abstract class FacadeCustomer<T> {
                     + "idcolonia"
                     + " FROM personas p WHERE "
                     + " replace((p." + IdentClientType.toUpperCase() + "),' ','')='" + documentId.replace(" ", "").trim() + "'"
-                    + " AND replace(UPPER(p.nombre),' ','')='" + Name.toUpperCase().replace(" ", "").trim() + "'"
-                    + " AND UPPER(replace(appaterno,' ','')||''||replace(UPPER(p.apmaterno),' ','')) LIKE ('%" + LastName.toUpperCase().replace(" ", "") + "%')"
+                    + " AND UPPER(p.nombre)='" + Name.toUpperCase().replace(" ", "").trim() + "'"
+                    + " AND UPPER(p.appaterno)||''||UPER(p.apmaterno) LIKE ('%" + LastName.toUpperCase().replace(" ", "") + "%')"
                     + " AND (CASE WHEN email IS NULL THEN '' ELSE trim(UPPER(email)) END)='" + Mail.toUpperCase() + "'"
                     + " AND (CASE WHEN telefono IS NULL THEN '' ELSE trim(telefono) END)='" + Phone + "'"
                     + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
-            System.out.println("Consulta:" + consulta);
 
         } else {
-            System.out.println("auiiii");
+
             consulta = "SELECT * FROM personas p WHERE "
                     + "replace((p." + IdentClientType.toUpperCase() + "),' ','')='" + documentId.replace(" ", "").trim() + "'"
-                    + " AND replace(UPPER(p.nombre),' ','')='" + Name.toUpperCase().replace(" ", "").trim() + "'"
-                    + " AND UPPER(replace(appaterno,' ','')||''||replace(p.apmaterno,' ','')) LIKE ('%" + LastName.toUpperCase().replace(" ", "") + "%')"
+                    + " AND UPPER(p.nombre)='" + Name.toUpperCase().replace(" ", "").trim() + "'"
+                    + " AND UPPER(appaterno)||''||UPPER(p.apmaterno) LIKE ('%" + LastName.toUpperCase().replace(" ", "") + "%')"
                     + " AND (CASE WHEN email IS NULL THEN '' ELSE trim(email) END)='" + Mail + "'"
                     + " AND (CASE WHEN telefono IS NULL THEN '' ELSE trim(telefono) END)='" + Phone + "'"
                     + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
         }
-
+        System.out.println("Consulta:" + consulta);
         try {   //Se deberia buscar por telefono,celular,email pero Mitras solicito que solo sea x curp y nombre esta en prueba            
             Query query = em.createNativeQuery(consulta, Persona.class);
             persona = (Persona) query.getSingleResult();
-            System.out.println("Persona::" + persona.getAppaterno());
+            //String encodedWithISO88591 = persona.getAppaterno();
+
+            //String appaternoDecodedToUTF8 = new String(encodedWithISO88591.getBytes("ISO-8859-1"), "UTF-8");
+            //Result, decodedToUTF8 --> "üzüm bağları"
             //p = (Persona) query.getSingleResult();
         } catch (Exception e) {
             em.close();
@@ -187,63 +193,99 @@ public abstract class FacadeCustomer<T> {
     }
 
     //Buscamos si el usuario no existe aun en la base de datos
-    public boolean BuscarUsuario(String user) {
-        boolean bandera = false;
+    public String BuscarUsuario(String user) {
+        String mensaje = "";
         EntityManager em = emf.createEntityManager();
         try {
-            String consulta = "SELECT count(*) FROM usuarios_bancam_bankingly WHERE username='" + user + "'";
+            String consulta = "SELECT count(*) FROM banca_movil_usuarios WHERE alias_usuario='" + user + "'";
             Query query = em.createNativeQuery(consulta);
             int count = Integer.parseInt(query.getSingleResult().toString());
             if (count > 0) {
-                bandera = true;
+                mensaje = "usuario ya esta asignado";
+            } else {
+                mensaje = "usuario validado con exito";
             }
         } catch (Exception e) {
-            em.clear();
             em.close();
             System.out.println("Error en metodo para buscar usuario:" + e.getMessage());
-            return false;
+            return e.getMessage().toUpperCase();
         } finally {
             em.clear();
             em.close();
         }
-        return bandera;
+
+        return mensaje.toUpperCase();
     }
 
     //Buscamos si el socio no aparezca con otro usuario
-    public boolean BuscarSocioRegistrado(String customer) {
-        boolean bandera = false;
+    public String BuscarSocioRegistrado(int idorigen, int idgrupo, int idsocio,String username) {
+        String mensaje = "";
         EntityManager em = emf.createEntityManager();
         try {
+            /*int o=Integer.parseInt(customer.substring(0,6));
+            int g=Integer.parseInt(customer.substring(6,8));
+            int s=Integer.parseInt(customer.substring(8,14));*/
 
-            String consulta = "SELECT count(*) FROM usuarios_bancam_bankingly WHERE socio='" + customer + "'";
-            Query query = em.createNativeQuery(consulta);
-            int count = Integer.parseInt(query.getSingleResult().toString());
-            if (count > 0) {
-                bandera = true;
+            //Busco la tabla donde guarda el producto para banca movil
+            TablasPK tablasPK = new TablasPK("bankingly_banca_movil", "acceso_aplicacion");
+            Tablas tablaProducto = em.find(Tablas.class, tablasPK);
+
+            System.out.println("TablaProducto:" + tablaProducto);
+            //Buscamos que el socio tenga el producto para banca movil aperturado en auxiliares            
+            String busquedaFolio = "SELECT * FROM auxiliares WHERE idorigen=" + idorigen + " AND idgrupo=" + idgrupo + " AND idsocio=" + idsocio + " AND idproducto=" + tablaProducto.getDato1();
+            Query busquedaFolioQuery = em.createNativeQuery(busquedaFolio, Auxiliares.class);
+            Auxiliares a = (Auxiliares) busquedaFolioQuery.getSingleResult();
+            if (a != null) {
+                //mensaje = "validado con exito";
+                //Guardamos el socio o si ya esta nada mas actualizamos el username
+                PersonasPK pk=new PersonasPK(idorigen, idgrupo, idsocio);
+                banca_movil_usuarios usersBanca = em.find(banca_movil_usuarios.class,pk);
+                if (usersBanca != null) {
+                    usersBanca.setAlias_usuario(username);
+                    em.getTransaction().begin();
+                    em.persist(usersBanca);
+                    em.getTransaction().commit();
+                } else {
+                    
+                    String update="INSERT INTO banca_movil_usuarios VALUES(?,?,?,?,?,?,?,?)";
+                    em.getTransaction().begin();
+                    int execute=em.createNativeQuery(update)
+                                  .setParameter(1,pk.getIdorigen())
+                                  .setParameter(2, pk.getIdgrupo())
+                                  .setParameter(3, pk.getIdgrupo())
+                                  .setParameter(4, username)
+                                  .setParameter(5, true)
+                                  .setParameter(6,a.getAuxiliaresPK().getIdorigenp())
+                                  .setParameter(7,a.getAuxiliaresPK().getIdproducto())
+                                  .setParameter(8,a.getAuxiliaresPK().getIdauxiliar()).executeUpdate();
+                    
+                    em.getTransaction().commit();
+                                  
+                    mensaje="usuario validado con exito";
+                    
+                    
+                }
             }
         } catch (Exception e) {
-            em.clear();
-            em.close();
-            System.out.println("Error en metodo para buscar usuario:" + e.getMessage());
-            return false;
+            mensaje = "El usuario no tiene habilitado el producto para banca movil";
+            System.out.println("Error en metodo para buscar persona registrada:" + e.getMessage());
+            em.getTransaction().rollback();
+            return mensaje.toUpperCase();
         } finally {
             em.clear();
             em.close();
         }
-        return bandera;
+        return mensaje.toUpperCase();
     }
 
     //Guardamos el usuario en la base de datos
-    public boolean saveUsername(String username, int idorigen, int idgrupo, int idsocio) {
+    public boolean saveUsername(String username, int idorigen, int idgrupo, int idsocio, int idorigenp, int idproducto, int idaxuliar) {
         EntityManager em = emf.createEntityManager();
         try {
-            usuarios_banca_bankingly userDB = new usuarios_banca_bankingly();
-            String socio = String.format("%06d", idorigen) + ""
-                    + String.format("%02d", idgrupo) + ""
-                    + String.format("%06d", idsocio);
-            userDB.setSocio(socio);
-            userDB.setUsername(username);
-            userDB.setEstatus(true);
+            banca_movil_usuarios userDB = new banca_movil_usuarios();
+            PersonasPK personaPK = new PersonasPK(idorigen, idgrupo, idsocio);
+            userDB.setPersonasPK(personaPK);
+            userDB.setAlias_usuario(username);
             em.getTransaction().begin();
             em.persist(userDB);
             em.getTransaction().commit();
@@ -271,39 +313,17 @@ public abstract class FacadeCustomer<T> {
         return serverEncoding.replace(" ", "").toUpperCase();
     }
 
-    public String caja() {
-        EntityManager em = emf.createEntityManager();
-        String nombreOrigen = "";
-        try {
-            String consulta = "SELECT replace(nombre,' ','') FROM origenes WHERE matriz=0";
-            System.out.println("ConsultaOrigen:" + consulta);
-            Query query = em.createNativeQuery(consulta);
-            nombreOrigen = String.valueOf(query.getSingleResult());
-        } catch (Exception e) {
-            em.clear();
-            em.close();
-            System.out.println("Error al crear origen trabajando:" + e.getMessage());
-            return "";
-        } finally {
-            em.clear();
-            em.close();
-        }
-        System.out.println("NombreOrigen:" + nombreOrigen);
-        return nombreOrigen.replace(" ", "").toUpperCase();
-    }
-
     public void pruebasPrezzta() {
         EntityManager em = emf.createEntityManager();
         try {
             Query qe = em.createNativeQuery("SELECT * FROM trabajo where idorigen=30301 AND idgrupo=10 AND idsocio=515");
-           
+
             lista = qe.getResultList();
             System.out.println("Size:" + lista);
             long time = System.currentTimeMillis();
             Timestamp timestamp = new Timestamp(time);
             Instant instant = timestamp.toInstant();
             System.out.println("Current Time Stamp: " + timestamp);
-            
 
             em.close();
         } catch (Exception e) {

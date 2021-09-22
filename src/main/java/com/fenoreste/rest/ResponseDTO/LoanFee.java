@@ -4,9 +4,6 @@
  * and open the template in the editor.
  */
 package com.fenoreste.rest.ResponseDTO;
-
-import java.util.Date;
-
 /**
  *
  * @author Elliot

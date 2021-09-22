@@ -1,11 +1,13 @@
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.DTO.OgsDTO;
+import com.fenoreste.rest.DTO.OpaDTO;
 import com.fenoreste.rest.DTO.TablasDTO;
 import com.fenoreste.rest.ResponseDTO.ProductBankStatementDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.ResponseDTO.ProductsConsolidatePositionDTO;
 import com.fenoreste.rest.ResponseDTO.ProductsDTO;
-import com.fenoreste.rest.Util.TimerBeepClock;
+import com.fenoreste.rest.Util.Utilidades;
 import com.fenoreste.rest.WsTDD.SaldoTddPK;
 import com.fenoreste.rest.WsTDD.TarjetaDeDebito;
 import com.fenoreste.rest.entidades.Auxiliares;
@@ -21,10 +23,10 @@ import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK1;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
-import java.awt.Toolkit;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -36,14 +38,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Timer;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -58,10 +58,8 @@ public abstract class FacadeProductos<T> {
 
     public FacadeProductos(Class<T> entityClass) {
         emf = AbstractFacade.conexion();
-        System.out.println("hoy:" + hoy);
-        eliminarArchivosTemporaralesEstadosCuenta();
     }
-
+    Utilidades util=new Utilidades();
     public List<ProductsDTO> getProductos(String clientBankIdentifiers, Integer productTypes) {
         List<ProductsDTO> ListagetP = new ArrayList<ProductsDTO>();
         EntityManager em = emf.createEntityManager();
@@ -135,13 +133,13 @@ public abstract class FacadeProductos<T> {
     public List<ProductsConsolidatePositionDTO> ProductsConsolidatePosition(String clientBankIdentifier, List<String> productsBank) {
         EntityManager em = emf.createEntityManager();
         List<ProductsConsolidatePositionDTO> ListaReturn = new ArrayList<ProductsConsolidatePositionDTO>();
-        String productTypeId = "";
-
+        OgsDTO ogs=util.ogs(clientBankIdentifier);
         try {
             for (int ii = 0; ii < productsBank.size(); ii++) {
+                OpaDTO opa=util.opa(productsBank.get(ii));
                 String consulta = "SELECT * FROM auxiliares "
-                        + " WHERE replace((to_char(idorigen,'099999')||to_char(idgrupo,'09')||to_char(idsocio,'099999')),' ','')='" + clientBankIdentifier
-                        + "' AND replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')='" + productsBank.get(ii) + "' AND estatus=2";
+                        + " WHERE idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()
+                        + " AND  idorigen="+ogs.getIdorigen()+"AND idgrupo="+ogs.getIdgrupo()+" AND idsocio="+ogs.getIdsocio()+" AND estatus=2";
                 System.out.println("consulta:" + consulta);
 
                 Query query = em.createNativeQuery(consulta, Auxiliares.class);
@@ -151,7 +149,6 @@ public abstract class FacadeProductos<T> {
                 boolean prA = false;
                 //Identifico la caja para la TDD
                 Double saldo = 0.0;
-                TarjetaDeDebito serviciosTdd = new TarjetaDeDebito();
                 for (int i = 0; i < listaA.size(); i++) {
                     Auxiliares a = listaA.get(i);
                     saldo = Double.parseDouble(a.getSaldo().toString());
@@ -159,14 +156,14 @@ public abstract class FacadeProductos<T> {
                         WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
                         WsSiscoopFoliosTarjetas1 tarjeta = em.find(WsSiscoopFoliosTarjetas1.class, foliosPK);
                         try {
-                            TablasDTO tablaDTO = serviciosTdd.productoTddwebservice();
+                            TablasDTO tablaDTO = new TarjetaDeDebito().productoTddwebservice(em);
                             if (Integer.parseInt(tablaDTO.getDato2()) == a.getAuxiliaresPK().getIdproducto()) {
                                 saldo = 0.0;
-                                BalanceQueryResponseDto saldoWS = serviciosTdd.saldoTDD(foliosPK);
+                                BalanceQueryResponseDto saldoWS = new TarjetaDeDebito().saldoTDD(foliosPK,em);
                                 if (saldoWS.getCode() == 1) {
                                     saldo = saldoWS.getAvailableAmount();
                                     SaldoTddPK saldoTddPK = new SaldoTddPK(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
-                                    serviciosTdd.actualizarSaldoTDD(saldoTddPK, saldo);
+                                    new TarjetaDeDebito().actualizarSaldoTDD(saldoTddPK, saldo,em);
                                 }
                             }
                         } catch (Exception e) {
@@ -278,12 +275,13 @@ public abstract class FacadeProductos<T> {
     public List<ProductBankStatementDTO> statements(String cliente, String productBankIdentifier, int productType) {
         EntityManager em = emf.createEntityManager();
         List<ProductBankStatementDTO> listaEstadosDeCuenta = new ArrayList<>();
-
+        OpaDTO opa=util.opa(productBankIdentifier);
+        OgsDTO ogs=util.ogs(cliente);
         try {
             boolean ba = false;
             try {
-                String BusquedaProducto = "SELECT * FROM auxiliares a WHERE replace(to_char(a.idorigenp,'099999')||to_char(a.idproducto,'09999')||to_char(a.idauxiliar,'09999999'),' ','')='" + productBankIdentifier + "'"
-                        + " AND replace(to_char(a.idorigen,'099999')||to_char(a.idgrupo,'09')||to_char(a.idsocio,'099999'),' ','')='" + cliente + "' AND estatus=2";
+                String BusquedaProducto = "SELECT * FROM auxiliares a WHERE idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()
+                        + " AND idorigen="+ogs.getIdorigen()+" AND idgrupo="+ogs.getIdgrupo()+" AND idsocio="+ogs.getIdsocio() +" AND estatus=2";
                 System.out.println("Consulta:" + BusquedaProducto);
                 Query queryB = em.createNativeQuery(BusquedaProducto, Auxiliares.class);
                 Auxiliares a = (Auxiliares) queryB.getSingleResult();
@@ -295,61 +293,54 @@ public abstract class FacadeProductos<T> {
             }
             //Si existe el producto auxiliar
             if (ba) {
-
                 File file = null;
-
                 String periodo_ = "SELECT to_char(date(fechatrabajo),'yyyy-MM') FROM origenes limit 1";
                 Query queryF = em.createNativeQuery(periodo_);
                 String fechaServidorDB = String.valueOf(queryF.getSingleResult()) + "-01";
-                try {
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    LocalDate local = LocalDate.parse(fechaServidorDB);
-                    //Date date = Date.from(local.atStartOfDay(defaultZoneId).toInstant());
 
-                    String fi = "";
-                    String ff = "";
-                    LocalDateTime localDate = LocalDateTime.parse(fechaServidorDB + " 00:00:00", dtf);
-                    TablasPK tbEstados_cuentaPK = new TablasPK("bankingly_banca_movil", "total_estados_cuenta");
-                    Tablas tbEstados_Cuenta = em.find(Tablas.class, tbEstados_cuentaPK);
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                //Date date = Date.from(local.atStartOfDay(defaultZoneId).toInstant());
+                
+                
+                String fi = "";
+                String ff = "";
+                LocalDateTime localDate = LocalDateTime.parse(fechaServidorDB + " 00:00:00", dtf);
+                TablasPK tbEstados_cuentaPK = new TablasPK("bankingly_banca_movil", "total_estados_cuenta");
+                Tablas tbEstados_Cuenta = em.find(Tablas.class, tbEstados_cuentaPK);
 
-                    int total_estados = Integer.parseInt(String.valueOf(tbEstados_Cuenta.getDato1()));
-                    for (int i = 0; i < total_estados; i++) {
-                        ProductBankStatementDTO estadoCuenta = new ProductBankStatementDTO();
-                        ff = String.valueOf(localDate.plusMonths(-i));
-                        fi = String.valueOf(localDate.plusMonths(-i - 1));
-                        //System.out.println("LocaDate:"+localDate);
-                        System.out.println("yyyy/MM/dd HH:mm:ss-> " + dtf.format(LocalDateTime.now()));
-                        file = crear_llenar_txt(productBankIdentifier, fi, ff, productType);
+                int total_estados = Integer.parseInt(String.valueOf(tbEstados_Cuenta.getDato1()));
+                for (int i = 0; i < total_estados; i++) {
+                    ProductBankStatementDTO estadoCuenta = new ProductBankStatementDTO();
+                    ff = String.valueOf(localDate.plusMonths(-i));
+                    fi = String.valueOf(localDate.plusMonths(-i - 1));
+                   
 
-                        //file=new File(ruta()+"e_cuenta_ahorro_0101010011000010667_2.txt");          
-                        File fileTxt = new File(ruta() + file.getName());
-                        if (fileTxt.exists()) {
-                            File fileHTML = crear_llenar_html(fileTxt, fileTxt.getName().replace(".txt", ".html"));
-                            if (crearPDF(ruta(), fileHTML.getName())) {
-                                estadoCuenta.setProductBankIdentifier(dtf.format(LocalDateTime.now()));
-                                estadoCuenta.setProductBankIdentifier(productBankIdentifier);
-                                estadoCuenta.setProductBankStatementId(file.getName().replace(".txt", "").replace("T", "").replace(":", "").replace("-", ""));
-                                estadoCuenta.setProductType(productType);
-                                estadoCuenta.setProductBankStatementDate(dtf.format(LocalDateTime.now()));
-                                listaEstadosDeCuenta.add(estadoCuenta);
-                                fileTxt.delete();
-                                fileHTML.delete();
-                            }
+                    //System.out.println("LocaDate:"+localDate);
+                    System.out.println("yyyy/MM/dd HH:mm:ss-> " + dtf.format(LocalDateTime.now()));
+                    file = crear_llenar_txt(productBankIdentifier, fi, ff, productType);
+                    //file=new File(ruta()+"e_cuenta_ahorro_0101010011000010667_2.txt");          
+                    File fileTxt = new File(ruta() + file.getName());
+                    if (fileTxt.exists()) {
+                        File fileHTML = crear_llenar_html(fileTxt, fileTxt.getName().replace(".txt", ".html"));
+                        if (crearPDF(ruta(), fileHTML.getName())) {
+                            estadoCuenta.setProductBankIdentifier(dtf.format(LocalDateTime.now()));
+                            estadoCuenta.setProductBankIdentifier(productBankIdentifier);
+                            estadoCuenta.setProductBankStatementId(file.getName().replace(".txt", "").replace("T", "").replace(":", "").replace("-", ""));
+                            estadoCuenta.setProductType(productType);
+                            estadoCuenta.setProductBankStatementDate(ff.substring(0,10));
+                            listaEstadosDeCuenta.add(estadoCuenta);
                         }
                     }
-                    /*file=new File(ruta()+"test.txt");
+                }
+                /*file=new File(ruta()+"test.txt");
                     crear_llenar_html(file,"test.txt");
                     crearPDF(ruta(),"test.html");
-                     */
-                } catch (Exception e) {
-                    em.close();
-                    System.out.println("Error en crear estado de cuenta:" + e.getMessage());
-                }
+                 */
 
             }
         } catch (Exception ex) {
             em.close();
-            System.out.println("si");
+            return listaEstadosDeCuenta;
         } finally {
             em.close();
         }
@@ -379,15 +370,16 @@ public abstract class FacadeProductos<T> {
     public File crear_llenar_txt(String opa, String FInicio, String FFinal, int tipoproducto) {
         int numeroAleatorio = (int) (Math.random() * 9 + 1);
         String NProducto = "";
-        if (tipoproducto == 1) {
+        if (tipoproducto == 2) {
             NProducto = "e_cuenta_ahorros";
         } else if (tipoproducto == 5) {
             NProducto = "e_cuenta_prestamos";
         } else if (tipoproducto == 4) {
             NProducto = "e_cuenta_dpfs_ind";
         }
-
-        String nombre_txt = NProducto + "-" + FInicio.replace("-", "") + "" + FFinal.replace("/", "") + String.valueOf(numeroAleatorio) + ".txt";
+        SimpleDateFormat dateFormatLocal = new SimpleDateFormat("HH:mm:ss.SSS");
+        String hora = dateFormatLocal.format(new Date());
+        String nombre_txt = NProducto + "-" + FInicio.substring(0, 10).replace("-", "") + "" + FFinal.substring(0, 10).replace("-", "") + hora.replace(":", "") + String.valueOf(numeroAleatorio) + ".txt";
         System.out.println("nombreTxt:" + nombre_txt);
         EntityManager em = emf.createEntityManager();
         File file = null;
@@ -398,7 +390,7 @@ public abstract class FacadeProductos<T> {
             String fichero_txt = ruta() + nombre_txt;
             String contenido;
 
-            String consulta = "SELECT sai_estado_" + NProducto.replace("e_", "") + "(" + o + "," + p + "," + a + ",'" + FInicio.replace("-", "/") + "','" + FFinal + "')";
+            String consulta = "SELECT sai_estado_" + NProducto.replace("e_", "") + "(" + o + "," + p + "," + a + ",'" + FInicio + "','" + FFinal + "')";
             System.out.println("Consulta Statements:" + consulta);
             Query query = em.createNativeQuery(consulta);
             contenido = String.valueOf(query.getSingleResult());
@@ -413,6 +405,7 @@ public abstract class FacadeProductos<T> {
             bw.write(contenido);
             bw.close();
         } catch (Exception e) {
+            System.out.println("Error en crear estado de cuenta a TXT:" + e.getMessage());
             em.close();
         } finally {
             em.close();
@@ -487,6 +480,7 @@ public abstract class FacadeProductos<T> {
         String home = System.getProperty("user.home");
         String separador = System.getProperty("file.separator");
         String actualRuta = home + separador + "Banca" + separador;
+        System.out.println("Ruta:" + actualRuta);
         return actualRuta;
     }
 
@@ -514,7 +508,7 @@ public abstract class FacadeProductos<T> {
         try {
             TablasPK pk = new TablasPK("siscoop_banca_movil", "wsdl_parametros");
             Tablas tb = em.find(Tablas.class,
-                     pk);
+                    pk);
             if (authSyC(tb.getDato1(), tb.getDato2())) {
                 SiscoopTDD tdd = new SiscoopTDD(tb.getDato1(), tb.getDato2());
                 BalanceQueryResponseDto dto = tdd.getSiscoop().getBalanceQuery(pan);
@@ -568,7 +562,7 @@ public abstract class FacadeProductos<T> {
         EntityManager em = emf.createEntityManager();
         TablasPK tablasPK = new TablasPK("siscoop_banca_movil", "wsdl");
         Tablas tb = em.find(Tablas.class,
-                 tablasPK);
+                tablasPK);
         System.out.println("tablas encontrdas:" + tb);
         String wsdlLocation = "http://" + tb.getDato1() + ":" + tb.getDato3() + "/syc/webservice/" + tb.getDato2() + "?wsdl";
         System.out.println("wsdlLocation:" + wsdlLocation);
@@ -606,17 +600,7 @@ public abstract class FacadeProductos<T> {
         }
         return nombreOrigen.replace(" ", "").toUpperCase();
     }
-    
-    
-    
-    
-  //Para eliminar PDF
-  public void eliminarArchivosTemporaralesEstadosCuenta(){
-      TimerBeepClock time=new TimerBeepClock();
-      Toolkit.getDefaultToolkit().beep();
-      System.out.println("entro");
-       
-  }
+
     public void cerrar() {
         emf.close();
     }

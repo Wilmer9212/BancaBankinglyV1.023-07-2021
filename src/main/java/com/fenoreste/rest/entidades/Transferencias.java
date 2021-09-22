@@ -6,7 +6,6 @@
 package com.fenoreste.rest.entidades;
 
 import java.io.Serializable;
-import java.sql.Timestamp;
 import java.util.Date;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;

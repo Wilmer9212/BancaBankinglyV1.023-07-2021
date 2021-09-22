@@ -6,15 +6,15 @@
 package com.fenoreste.rest.dao;
 
 import com.fenoreste.rest.entidades.Auxiliares;
-import com.fenoreste.rest.entidades.Tablas;
+import javax.persistence.EntityManagerFactory;
 
 /**
  *
  * @author Elliot
  */
-public class  DAOTDD extends FacadeTDD<Auxiliares> {
+public class DAOTDD extends FacadeTarjetaDebito<Auxiliares> {
 
-	 public DAOTDD() {
-	     super(Auxiliares.class);
-  }     
+    public DAOTDD() {
+        super(Auxiliares.class);
+    }
 }

@@ -117,7 +117,9 @@ public class WsSiscoopFoliosTarjetas1 implements Serializable {
 
     @Override
     public String toString() {
-        return "com.fenoreste.modelo.entidad.WsSiscoopFoliosTarjetas[ wsSiscoopFoliosTarjetasPK=" + wsFoliosTarjetasSyCPK + " ]";
+        return "WsSiscoopFoliosTarjetas1{" + "wsFoliosTarjetasSyCPK=" + wsFoliosTarjetasSyCPK + ", asignada=" + asignada + ", activa=" + activa + ", bloqueada=" + bloqueada + ", idtarjeta=" + idtarjeta + ", fechaHora=" + fechaHora + '}';
     }
+
+    
 
 }

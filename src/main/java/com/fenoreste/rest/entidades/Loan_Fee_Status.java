@@ -5,6 +5,7 @@
  */
 package com.fenoreste.rest.entidades;
 
+import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -16,7 +17,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="loan_fee_statusB")
-public class Loan_Fee_Status {
+public class Loan_Fee_Status implements Serializable{
     
     @Id
     @Column(name="id")

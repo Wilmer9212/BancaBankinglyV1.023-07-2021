@@ -10,7 +10,7 @@ import com.fenoreste.rest.Util.AbstractFacade_1;
 import com.fenoreste.rest.dao.CustomerDAO;
 import com.fenoreste.rest.entidades.Auxiliares;
 import com.fenoreste.rest.entidades.Persona;
-import com.fenoreste.rest.entidades.usuarios_banca_bankingly;
+import com.fenoreste.rest.entidades.banca_movil_usuarios;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -44,10 +44,10 @@ public class TestResources {
             EntityManager em=emf.createEntityManager();
             String usuario=request.getString("username");
             String c="SELECT * FROM usuarios_bancam_bankinglyTest WHERE username='"+usuario+"' and estatus=true";
-            Query q=em.createNativeQuery(c,usuarios_banca_bankingly.class);
-            usuarios_banca_bankingly user=(usuarios_banca_bankingly) q.getSingleResult();
-            jsonOb.put("user",user.getUsername());
-            jsonOb.put("id",user.getSocio());
+            Query q=em.createNativeQuery(c,banca_movil_usuarios.class);
+            banca_movil_usuarios user=(banca_movil_usuarios) q.getSingleResult();
+            /*jsonOb.put("user",user.getUsername());
+            jsonOb.put("id",user.getSocio());*/
             em.close();
         } catch (Exception e) {
             jsonOb.put("user","null");

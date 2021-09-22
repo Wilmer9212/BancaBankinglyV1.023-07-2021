@@ -1,10 +1,12 @@
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.DTO.OpaDTO;
 import com.fenoreste.rest.DTO.TablasDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.ResponseDTO.AccountLast5MovementsDTO;
 import com.fenoreste.rest.ResponseDTO.AccountDetailsDTO;
 import com.fenoreste.rest.ResponseDTO.AccountMovementsDTO;
+import com.fenoreste.rest.Util.Utilidades;
 import com.fenoreste.rest.WsTDD.TarjetaDeDebito;
 import com.fenoreste.rest.entidades.AuxiliaresPK;
 import com.fenoreste.rest.entidades.Productos;
@@ -27,7 +29,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 
 public abstract class FacadeAccounts<T> {
-
+    Utilidades util=new Utilidades();
     Calendar calendar = Calendar.getInstance();
     Date hoy = calendar.getTime();
     private static EntityManagerFactory emf;
@@ -43,14 +45,11 @@ public abstract class FacadeAccounts<T> {
         //0302203666400000037 opa sin movimientos durante 48 Hrs
         //
         em = emf.createEntityManager();
-        int o = Integer.parseInt(accountId.substring(0, 6));
-        int p = Integer.parseInt(accountId.substring(6, 11));
-        int a = Integer.parseInt(accountId.substring(11, 19));
-
+        OpaDTO opa=util.opa(accountId);
         AccountDetailsDTO cuenta = null;
-        System.out.println("O:" + o + ",P:" + p + ",A:" + a);
+        System.out.println("O:" + opa.getIdorigenp() + ",P:" + opa.getIdproducto() + ",A:" + opa.getIdauxiliar());
         try {
-            AuxiliaresPK auxpk = new AuxiliaresPK(o, p, a);
+            AuxiliaresPK auxpk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(),opa.getIdauxiliar());
             Auxiliares aux = em.find(Auxiliares.class, auxpk);
             Productos prod = em.find(Productos.class, aux.getAuxiliaresPK().getIdproducto());
             String S24H = DateFormat.getDateInstance().format(substractDate(1));
@@ -64,15 +63,15 @@ public abstract class FacadeAccounts<T> {
             //Si el producto es TDD
             //Leemos ws de TDD Alestra
             TarjetaDeDebito wsTDD=new TarjetaDeDebito();
-            TablasDTO productoWs=wsTDD.productoTddwebservice();
+            TablasDTO productoWs=new TarjetaDeDebito().productoTddwebservice(em);
             if (caja().contains("SANNICOLAS") && Integer.parseInt(productoWs.getDato2())==aux.getAuxiliaresPK().getIdproducto()) {
                 WsSiscoopFoliosTarjetasPK1 foliosPK=new WsSiscoopFoliosTarjetasPK1(aux.getAuxiliaresPK().getIdorigenp(),aux.getAuxiliaresPK().getIdproducto(),aux.getAuxiliaresPK().getIdauxiliar());
-                BalanceQueryResponseDto responseSaldo=wsTDD.saldoTDD(foliosPK);
+                BalanceQueryResponseDto responseSaldo=wsTDD.saldoTDD(foliosPK,em);
                 saldo24=responseSaldo.getAvailableAmount();
                 saldo48=responseSaldo.getAvailableAmount();
                 saldo=responseSaldo.getAvailableAmount();
             } else {
-                saldosF = getSaldoAuxiliaresD(o, p, a, S24H, S48H);
+                saldosF = getSaldoAuxiliaresD(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar(), S24H, S48H);
                 saldo24 = saldosF[0];
                 saldo48 = saldosF[1];
                 saldo = saldosF[2];
@@ -115,15 +114,15 @@ public abstract class FacadeAccounts<T> {
                     saldo48,
                     saldo,
                     saldoPromedioMensual,
-                    p,
-                    a,
-                    a,
-                    a,
-                    a,
-                    a,
-                    a,
-                    o,
-                    a,
+                    opa.getIdproducto(),
+                    opa.getIdauxiliar(),
+                    opa.getIdauxiliar(),
+                    opa.getIdauxiliar(),
+                    opa.getIdauxiliar(),
+                    opa.getIdauxiliar(),
+                    opa.getIdauxiliar(),
+                    opa.getIdorigenp(),
+                    opa.getIdauxiliar(),
                     0.0,
                     accountId,
                     accountId,
@@ -137,20 +136,23 @@ public abstract class FacadeAccounts<T> {
     }
 
     public List<AccountLast5MovementsDTO> getAccountLast5Movements(String accountId) {
-
+        OpaDTO opa=util.opa(accountId);
         AccountLast5MovementsDTO cuenta;
         boolean isDC = false;
         String Description = "";
         List<AccountLast5MovementsDTO> ListaDTO = new ArrayList<AccountLast5MovementsDTO>();
         try {
             em = emf.createEntityManager();
+            /*String consulta = " SELECT m.* "
+                    + "         FROM auxiliares_d m"
+                    + "         WHERE replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')= ? ORDER BY fecha DESC LIMIT 5";*/
             String consulta = " SELECT m.* "
                     + "         FROM auxiliares_d m"
-                    + "         WHERE replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')= ? ORDER BY fecha DESC LIMIT 5";
-            Query k = em.createNativeQuery(consulta);
-            k.setParameter(1, accountId);
+                    + "         WHERE idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+" ORDER BY fecha DESC LIMIT 5";
+            Query last5Movements = em.createNativeQuery(consulta);
+            //k.setParameter(1, accountId);
             int movementTypeId = 0;
-            List<Object[]> milista = k.getResultList();
+            List<Object[]> milista = last5Movements.getResultList();
             for (int i = 0; i < milista.size(); i++) {
                 Object[] as = milista.get(i);
                 if (Integer.parseInt(as[4].toString()) == 1) {
@@ -195,10 +197,10 @@ public abstract class FacadeAccounts<T> {
         String Description = "";
         List<AccountMovementsDTO> ListaDTO = new ArrayList<AccountMovementsDTO>();
         String complemento = "";
+        OpaDTO opa=util.opa(productBankIdentifier);
         try {
             System.out.println("orderB:" + orderBy);
             switch (orderBy.toUpperCase()) {
-
                 case "MOVEMENTDATE ASC":
                     complemento = "ORDER BY fecha ASC";
                     break;
@@ -259,21 +261,21 @@ public abstract class FacadeAccounts<T> {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
                         + "         WHERE date(fecha) between '" + dateFromFilter + "'"
-                        + "         AND '" + dateToFilter + "' AND replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')='" + productBankIdentifier + "' " + complemento;
+                        + "         AND '" + dateToFilter + "' AND idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
             } else if (!dateFromFilter.equals("") && dateToFilter.equals("")) {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
-                        + "         WHERE date(fecha) > '" + dateFromFilter + "' AND replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')='" + productBankIdentifier + "' " + complemento;
+                        + "         WHERE date(fecha) > '" + dateFromFilter + "' AND idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
 
             } else if (dateFromFilter.equals("") && !dateToFilter.equals("")) {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
-                        + "         WHERE date(fecha) < '" + dateToFilter + "' AND replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')='" + productBankIdentifier + "' " + complemento;
+                        + "         WHERE date(fecha) < '" + dateToFilter + "' AND idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
 
             } else {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
-                        + "         WHERE replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')='" + productBankIdentifier + "' " + complemento;
+                        + "         WHERE  idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
 
             }
 

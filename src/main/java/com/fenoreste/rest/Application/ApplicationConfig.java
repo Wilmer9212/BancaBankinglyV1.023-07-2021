@@ -6,8 +6,6 @@
 package com.fenoreste.rest.Application;
 
 import com.fenoreste.rest.Util.TimerBeepClock;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,7 +33,7 @@ public class ApplicationConfig extends Application {
         Runnable task = new TimerBeepClock();
         int initialDelay = 1;
         int periodicDelay = 1;
-        scheduler.scheduleAtFixedRate(task, initialDelay, periodicDelay,TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(task, initialDelay, periodicDelay,TimeUnit.SECONDS);
         
         
     }
@@ -51,5 +49,7 @@ public class ApplicationConfig extends Application {
         resources.add(com.fenoreste.rest.RESTservices.TestResources.class);
         resources.add(com.fenoreste.rest.RESTservices.TransactionResources.class);
     }
+    
+   
     
 }
