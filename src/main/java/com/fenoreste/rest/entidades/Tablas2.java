@@ -3,7 +3,6 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package com.fenoreste.rest.entidades;
 
 import java.io.Serializable;
@@ -11,17 +10,14 @@ import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import javax.xml.bind.annotation.XmlRootElement;
-
 
 /**
  *
- * @author Elliot
+ * @author wilmer
  */
 @Entity
 @Table(name = "tablas")
-@XmlRootElement
-public class Tablas implements Serializable {
+public class Tablas2  implements Serializable{
     
     @EmbeddedId
     protected TablasPK tablasPK;
@@ -40,10 +36,10 @@ public class Tablas implements Serializable {
     @Column(name = "tipo")
     private short tipo;
 
-    public Tablas() {
+    public Tablas2() {
     }
 
-    public Tablas(TablasPK tablasPK, String nombre, String dato1, String dato2, String dato3, String dato4, String dato5, short tipo) {
+    public Tablas2(TablasPK tablasPK, String nombre, String dato1, String dato2, String dato3, String dato4, String dato5, short tipo) {
         this.tablasPK = tablasPK;
         this.nombre = nombre;
         this.dato1 = dato1;
@@ -120,10 +116,9 @@ public class Tablas implements Serializable {
 
     @Override
     public String toString() {
-        return "Tablas{" + "tablasPK=" + tablasPK + ", nombre=" + nombre + ", dato1=" + dato1 + ", dato2=" + dato2 + ", dato3=" + dato3 + ", dato4=" + dato4 + ", dato5=" + dato5 + ", tipo=" + tipo + '}';
+        return "Tablas2{" + "tablasPK=" + tablasPK + ", nombre=" + nombre + ", dato1=" + dato1 + ", dato2=" + dato2 + ", dato3=" + dato3 + ", dato4=" + dato4 + ", dato5=" + dato5 + ", tipo=" + tipo + '}';
     }
-
     
-    private static final long serialVersionUID = 1L;
+    
 
 }

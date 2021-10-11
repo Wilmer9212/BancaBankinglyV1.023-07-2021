@@ -19,7 +19,7 @@ import javax.persistence.TemporalType;
  *
  * @author Elliot
  */
-@Cacheable(false)
+
 @Entity
 @Table(name = "personas")
 public class Persona{

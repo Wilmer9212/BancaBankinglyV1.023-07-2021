@@ -7,7 +7,6 @@ package com.fenoreste.rest.RESTservices;
 
 import com.fenoreste.rest.ResponseDTO.ClientByDocumentDTO;
 import com.fenoreste.rest.dao.CustomerDAO;
-import com.fenoreste.rest.dao.DAOGeneral;
 import com.fenoreste.rest.entidades.Persona;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import javax.ws.rs.Consumes;
@@ -54,7 +53,8 @@ public class CustomerResources {
     @Produces({MediaType.APPLICATION_JSON + ";charset=utf-8"})
     @Consumes({MediaType.APPLICATION_JSON + ";charset=utf-8"})
     public Response getClientsByDocument(String cadenaJson) throws Throwable {
-        System.out.println("Request Json clientByDocuments:" + cadenaJson);
+
+        //Verificamos el horario de actividad
         JSONObject JsonRequest_ = new JSONObject(cadenaJson);
         JsonObject JsonError_ = new JsonObject();
         JsonObject JsonResponse_ = new JsonObject();
@@ -67,54 +67,56 @@ public class CustomerResources {
         String CellPhone = JsonRequest_.getString("cellPhone");
         String UserName = JsonRequest_.getString("userName");
         CustomerDAO metodos = new CustomerDAO();
-
+        
+        String mensaje_error="";
+        if (!metodos.actividad_horario()) {
+            JsonError_.put("ERROR", "VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(JsonError_).build();
+        }
         try {
             Persona persona = null;
             try {
+                //Buscamos a la persona con los datos que se esta enviando
                 persona = metodos.BuscarPersona(ClientType, DocumentId, Name, LastName, Mail, Phone, CellPhone);
-            } catch (Exception e) {
                 
+            } catch (Exception e) {
+                mensaje_error="Persona no existe";
             }
-            if (persona != null) {
-                //Validamos que el socio ya halla asistido a sudcursal a aperturar el producto para banca movil
-                String buscarSocioRegistrado = metodos.BuscarSocioRegistrado(persona.getPersonasPK().getIdorigen(), persona.getPersonasPK().getIdgrupo(), persona.getPersonasPK().getIdsocio(),UserName);
-                if (buscarSocioRegistrado.contains("EXITO")) {
-                    //Validamos que el usuario no se halla registrado en la base de datos
-                    String validacionUsuaurio = metodos.BuscarUsuario(UserName);
-                    if (validacionUsuaurio.contains("EXITO")) {
-                        ClientByDocumentDTO cliente = null;
-                        //Buscamos que la persona no se halla registrado antes
-                        //-----String mensajeValidacionUsuario = metodos.BuscarSocioRegistrado(persona.getPersonasPK().getIdorigen(), persona.getPersonasPK().getIdgrupo(), persona.getPersonasPK().getIdsocio());
 
-                        //Retornamos el dto para GetClientByDocument y en ese mismo metodo buscamos el socio en la tabla banca_movil_usuarios 
-                        cliente = metodos.getClientByDocument(persona,UserName);
-                        if (cliente != null) {
-                            JsonResponse_.put("customers", cliente);
-                            return Response.ok(JsonResponse_).build();
-                        } else {
-                            JsonResponse_.put("Error", "NO SE PUDIERON CARGAR DATOS,CONTACTE AL PROVEEDOR");
-                            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JsonResponse_).build();
-                        }
+            //Si la persona existe 
+            if (persona.getPersonasPK() != null) {
+                //Validamos que el socio ya halla asistido a sucursal a aperturar el producto para banca movil
+                String validaciones_datos_ = metodos.validaciones_datos(persona.getPersonasPK().getIdorigen(), persona.getPersonasPK().getIdgrupo(), persona.getPersonasPK().getIdsocio(), UserName);
+                System.out.println("validaciones datos:" + validaciones_datos_);
+                if (validaciones_datos_.contains("EXITO")) {
+                    ClientByDocumentDTO cliente = null;
+                    //Buscamos que la persona no se halla registrado antes
+                    //-----String mensajeValidacionUsuario = metodos.BuscarSocioRegistrado(persona.getPersonasPK().getIdorigen(), persona.getPersonasPK().getIdgrupo(), persona.getPersonasPK().getIdsocio());
+
+                    //Retornamos el dto para GetClientByDocument y en ese mismo metodo buscamos el socio en la tabla banca_movil_usuarios 
+                    cliente = metodos.getClientByDocument(persona, UserName);
+                    if (cliente != null) {
+                        JsonResponse_.put("customers", cliente);
+                        return Response.ok(JsonResponse_).build();
                     } else {
-                        JsonResponse_.put("Error", validacionUsuaurio);
-                        return Response.status(Response.Status.BAD_REQUEST).entity(JsonResponse_).build();
+                        JsonResponse_.put("Error", "NO SE PUDIERON CARGAR DATOS,CONTACTE AL PROVEEDOR");
+                        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JsonResponse_).build();
                     }
-                  }else {
-                    JsonResponse_.put("Error",buscarSocioRegistrado);
+
+                } else {
+                    JsonResponse_.put("Error", validaciones_datos_);
                     return Response.status(Response.Status.OK).entity(JsonResponse_).build();
                 }
             } else {
+                System.out.println("Entro aqui");
                 JsonResponse_.put("Error", "SOCIO NO EXISTE,VERIFIQUE DATOS");
                 return Response.status(Response.Status.OK).entity(JsonResponse_).build();
             }
         } catch (Exception e) {
+            System.out.println("Mensaje:"+mensaje_error);
             System.out.println("Error:" + e.getMessage());
             JsonError_.put("Error", e.getMessage());
-            metodos.cerrar();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JsonError_).build();
-        } finally {
-            metodos.cerrar();
         }
-
     }
 }

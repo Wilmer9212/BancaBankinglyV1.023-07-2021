@@ -34,16 +34,19 @@ public class LoanResources {
         System.out.println("Cadena:" + cadena);
         String productBankIdentifier = "";
         JsonObject Error = new JsonObject();
-        int feesStatus = 0, pageSize = 0, pageStartIndex = 0;
         LoanDAO dao = new LoanDAO();
+        if (!dao.actividad_horario()) {
+            Error.put("ERROR", "VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Error).build();
+        }
         try {
             JSONObject jsonRecibido = new JSONObject(cadena);
             productBankIdentifier = jsonRecibido.getString("productBankIdentifier");
             int o = Integer.parseInt(productBankIdentifier.substring(0, 6));
             int p = Integer.parseInt(productBankIdentifier.substring(6, 11));
             int a = Integer.parseInt(productBankIdentifier.substring(11, 19));
-            if(dao.tipoproducto(p)!=2){
-                Error.put("Error","Producto no valido para LOANS");
+            if (dao.tipoproducto(p) != 2) {
+                Error.put("Error", "Producto no valido para LOANS");
                 return Response.status(Response.Status.BAD_REQUEST).entity(Error).build();
             }
             /*feesStatus = jsonRecibido.getInt("feesStatus");
@@ -54,7 +57,7 @@ public class LoanResources {
             Error.put("Error", "Error en parametros JSON");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error).build();
         }
-       
+
         int count = 0;
         try {
             LoanDTO loan = dao.Loan(productBankIdentifier);
@@ -62,13 +65,10 @@ public class LoanResources {
             j.put("Loan", loan);
             return Response.status(Response.Status.OK).entity(j).build();
         } catch (Exception e) {
-            dao.cerrar();
             Error.put("Error", "SOCIOS NO ENCONTRADOS");
             System.out.println("Error al convertir cadena a JSON:" + e.getMessage());
             return Response.status(Response.Status.NO_CONTENT).entity(Error).build();
 
-        } finally {
-            dao.cerrar();
         }
 
     }
@@ -83,6 +83,10 @@ public class LoanResources {
         JsonObject Error = new JsonObject();
         int feeNumber = 0;
         LoanDAO dao = new LoanDAO();
+        if (!dao.actividad_horario()) {
+            Error.put("ERROR", "VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Error).build();
+        }
         try {
             JSONObject jsonRecibido = new JSONObject(cadena);
             productBankIdentifier = jsonRecibido.getString("productBankIdentifier");
@@ -90,15 +94,15 @@ public class LoanResources {
             int o = Integer.parseInt(productBankIdentifier.substring(0, 6));
             int p = Integer.parseInt(productBankIdentifier.substring(6, 11));
             int a = Integer.parseInt(productBankIdentifier.substring(11, 19));
-            if(dao.tipoproducto(p)!=2){
-                Error.put("Error","Producto no valido para LOANS");
+            if (dao.tipoproducto(p) != 2) {
+                Error.put("Error", "Producto no valido para LOANS");
                 return Response.status(Response.Status.BAD_REQUEST).entity(Error).build();
             }
         } catch (Exception e) {
             Error.put("Error", "Error en parametros JSON");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error).build();
         }
-        
+
         int count = 0;
         try {
             LoanFee loan = dao.LoanFee(productBankIdentifier, feeNumber);
@@ -106,13 +110,10 @@ public class LoanResources {
             j.put("Fee", loan);
             return Response.status(Response.Status.OK).entity(j).build();
         } catch (Exception e) {
-            dao.cerrar();
             Error.put("Error", "SOCIOS NO ENCONTRADOS");
             System.out.println("Error al convertir cadena a JSON:" + e.getMessage());
             return Response.status(Response.Status.NO_CONTENT).entity(Error).build();
 
-        } finally {
-            dao.cerrar();
         }
     }
 
@@ -126,50 +127,55 @@ public class LoanResources {
         JsonObject Error = new JsonObject();
         int feesStatus = 0, pageSize = 0, pageStartIndex = 0;
         LoanDAO dao = new LoanDAO();
-        try{
-        String order="";
+        if (!dao.actividad_horario()) {
+            Error.put("ERROR", "VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Error).build();
+        }
         try {
-            JSONObject jsonRecibido = new JSONObject(cadena);
-            productBankIdentifier = jsonRecibido.getString("productBankIdentifier");
-            feesStatus = jsonRecibido.getInt("feesStatus");
-            JSONObject json = jsonRecibido.getJSONObject("paging");
-            pageSize = json.getInt("pageSize");
-            pageStartIndex = json.getInt("pageStartIndex");
-            order=json.getString("orderByField");
-            System.out.println("order:"+order);
-            int o = Integer.parseInt(productBankIdentifier.substring(0, 6));
-            int p = Integer.parseInt(productBankIdentifier.substring(6, 11));
-            int a = Integer.parseInt(productBankIdentifier.substring(11, 19));
-            if(dao.tipoproducto(p)!=2){
-                Error.put("Error","Producto no valido para LOANS");
-                return Response.status(Response.Status.BAD_REQUEST).entity(Error).build();
+            String order = "";
+            try {
+                JSONObject jsonRecibido = new JSONObject(cadena);
+                productBankIdentifier = jsonRecibido.getString("productBankIdentifier");
+                feesStatus = jsonRecibido.getInt("feesStatus");
+                JSONObject json = jsonRecibido.getJSONObject("paging");
+                pageSize = json.getInt("pageSize");
+                pageStartIndex = json.getInt("pageStartIndex");
+                order = json.getString("orderByField");
+                System.out.println("order:" + order);
+                int o = Integer.parseInt(productBankIdentifier.substring(0, 6));
+                int p = Integer.parseInt(productBankIdentifier.substring(6, 11));
+                int a = Integer.parseInt(productBankIdentifier.substring(11, 19));
+                if (dao.tipoproducto(p) != 2) {
+                    Error.put("Error", "Producto no valido para LOANS");
+                    return Response.status(Response.Status.BAD_REQUEST).entity(Error).build();
+                }
+            } catch (Exception e) {
+                Error.put("Error", "Error en parametros JSON");
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error).build();
+            }
+
+            int count = 0;
+            try {
+                List<LoanFee> loan = dao.LoanFees(productBankIdentifier, feesStatus, pageSize, pageStartIndex, order);
+                JsonObject j = new JsonObject();
+
+                int t = dao.contadorGeneral(productBankIdentifier, 1, feesStatus);
+                if (t > 0) {
+                    j.put("Fees", loan);
+                    j.put("LoanFeesCount", t);
+                }else{
+                    j.put("Error","No se encontraron cuotas para el estatus:"+feesStatus);
+                }
+
+                return Response.status(Response.Status.OK).entity(j).build();
+            } catch (Exception e) {
+                Error.put("Error", "SOCIOS NO ENCONTRADOS");
+                System.out.println("Error al convertir cadena a JSON:" + e.getMessage());
+                return Response.status(Response.Status.NO_CONTENT).entity(Error).build();
+
             }
         } catch (Exception e) {
-            Error.put("Error", "Error en parametros JSON");
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error).build();
-        }
-
-        
-        int count = 0;
-        try {
-            List<LoanFee> loan = dao.LoanFees(productBankIdentifier, feesStatus, pageSize, pageStartIndex,order);
-            JsonObject j = new JsonObject();
-            
-            int t=dao.contadorGeneral(productBankIdentifier, 1,feesStatus);
-            j.put("Fees", loan);
-            j.put("LoanFeesCount",t);
-            return Response.status(Response.Status.OK).entity(j).build();
-        } catch (Exception e) {
-            dao.cerrar();
-            Error.put("Error", "SOCIOS NO ENCONTRADOS");
-            System.out.println("Error al convertir cadena a JSON:" + e.getMessage());
-            return Response.status(Response.Status.NO_CONTENT).entity(Error).build();
-
-        } 
-        }catch(Exception e){
-            System.out.println("Error:"+e.getMessage());
-        }finally{
-            dao.cerrar();
+            System.out.println("Error:" + e.getMessage());
         }
         return null;
     }
@@ -184,6 +190,10 @@ public class LoanResources {
         JsonObject Error = new JsonObject();
         int pageSize = 0, pageStartIndex = 0;
         LoanDAO dao = new LoanDAO();
+        if (!dao.actividad_horario()) {
+            Error.put("ERROR", "VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Error).build();
+        }
         try {
             JSONObject jsonRecibido = new JSONObject(cadena);
             productBankIdentifier = jsonRecibido.getString("productBankIdentifier");
@@ -193,8 +203,8 @@ public class LoanResources {
             int o = Integer.parseInt(productBankIdentifier.substring(0, 6));
             int p = Integer.parseInt(productBankIdentifier.substring(6, 11));
             int a = Integer.parseInt(productBankIdentifier.substring(11, 19));
-            if(dao.tipoproducto(p)!=2){
-                Error.put("Error","Producto no valido para LOANS");
+            if (dao.tipoproducto(p) != 2) {
+                Error.put("Error", "Producto no valido para LOANS");
                 return Response.status(Response.Status.BAD_REQUEST).entity(Error).build();
             }
         } catch (Exception e) {
@@ -202,25 +212,22 @@ public class LoanResources {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error).build();
         }
 
-       int count = 0;
+        int count = 0;
         try {
             List<LoanRate> loan = dao.LoanRates(productBankIdentifier, pageSize, pageStartIndex);
             JsonObject j = new JsonObject();
-            int t=3;
+            int t = 3;
             j.put("Rates", loan);
-            j.put("LoanRatesCount",t);
+            j.put("LoanRatesCount", t);
             return Response.status(Response.Status.OK).entity(j).build();
         } catch (Exception e) {
-            dao.cerrar();
             Error.put("Error", "SOCIOS NO ENCONTRADOS");
             System.out.println("Error al convertir cadena a JSON:" + e.getMessage());
             return Response.status(Response.Status.NO_CONTENT).entity(Error).build();
 
-        } finally {
-            dao.cerrar();
         }
     }
-    
+
     @POST
     @Path("/Payments")
     @Consumes({MediaType.APPLICATION_JSON})
@@ -231,6 +238,10 @@ public class LoanResources {
         JsonObject Error = new JsonObject();
         int pageSize = 0, pageStartIndex = 0;
         LoanDAO dao = new LoanDAO();
+        if (!dao.actividad_horario()) {
+            Error.put("ERROR", "VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Error).build();
+        }
         try {
             JSONObject jsonRecibido = new JSONObject(cadena);
             productBankIdentifier = jsonRecibido.getString("productBankIdentifier");
@@ -240,8 +251,8 @@ public class LoanResources {
             int o = Integer.parseInt(productBankIdentifier.substring(0, 6));
             int p = Integer.parseInt(productBankIdentifier.substring(6, 11));
             int a = Integer.parseInt(productBankIdentifier.substring(11, 19));
-            if(dao.tipoproducto(p)!=2){
-                Error.put("Error","Producto no valido para LOANS");
+            if (dao.tipoproducto(p) != 2) {
+                Error.put("Error", "Producto no valido para LOANS");
                 return Response.status(Response.Status.BAD_REQUEST).entity(Error).build();
             }
         } catch (Exception e) {
@@ -249,25 +260,20 @@ public class LoanResources {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error).build();
         }
 
-        
         int count = 0;
         try {
             List<LoanPayment> ListPayment = dao.loanPayments(productBankIdentifier, pageSize, pageStartIndex);
             JsonObject j = new JsonObject();
-             int t=dao.contadorGeneral(productBankIdentifier, 2, 0);
+            int t = dao.contadorGeneral(productBankIdentifier, 2, 0);
             j.put("Payments", ListPayment);
-            j.put("LoanPaymentsCount",t);
+            j.put("LoanPaymentsCount", t);
             return Response.status(Response.Status.OK).entity(j).build();
         } catch (Exception e) {
-            dao.cerrar();
             Error.put("Error", "SOCIOS NO ENCONTRADOS");
             System.out.println("Error al convertir cadena a JSON:" + e.getMessage());
             return Response.status(Response.Status.NO_CONTENT).entity(Error).build();
 
-        } finally {
-            dao.cerrar();
         }
     }
-    
 
 }

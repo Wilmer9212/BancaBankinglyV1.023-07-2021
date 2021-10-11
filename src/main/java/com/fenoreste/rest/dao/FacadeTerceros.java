@@ -5,6 +5,7 @@
  */
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.Util.UtilidadesGenerales;
 import com.fenoreste.rest.ResponseDTO.BackendOperationResultDTO;
 import com.fenoreste.rest.ResponseDTO.Bank;
 import com.fenoreste.rest.ResponseDTO.ThirdPartyProductDTO;
@@ -24,7 +25,6 @@ import com.fenoreste.rest.entidades.ProductosTerceros;
 import com.fenoreste.rest.entidades.Productos_bankingly;
 import java.util.ArrayList;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 
 /**
@@ -33,15 +33,14 @@ import javax.persistence.Query;
  */
 public abstract class FacadeTerceros<T> {
 
-    EntityManagerFactory emf = null;
+    UtilidadesGenerales util2 = new UtilidadesGenerales();
 
     public FacadeTerceros(Class<T> entityClass) {
-        emf = AbstractFacade.conexion();
     }
 
     public BackendOperationResultDTO validarProductoTerceros(ThirdPartyProductDTO dtoInput) {
         System.out.println("si." + dtoInput.getOwnerDocumentId().getDocumentNumber());
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();//EntityManager em = emf.createEntityManager();
         BackendOperationResultDTO dtoResult = new BackendOperationResultDTO();
         try {
             String backendMessage = "";
@@ -129,121 +128,129 @@ public abstract class FacadeTerceros<T> {
                 dtoResult.setTransactionIdenty(productosTerceros.getThirdPartyProductNumber());
 
             }
-            em.close();
+            
         } catch (Exception e) {
             e.printStackTrace();
-            em.close();
+            
             System.out.println("Error:" + e.getMessage());
         }
         return dtoResult;
 
     }
 
-    public ThirdPartyProductDTO cosultaProductosTerceros(String productNumber, Integer productTypeId,userDocumentIdDTO documento, Integer thirdPartyProductType) {
-        EntityManager em = emf.createEntityManager();
+    public ThirdPartyProductDTO cosultaProductosTerceros(String productNumber, Integer productTypeId, userDocumentIdDTO documento, Integer thirdPartyProductType) {
+        EntityManager em = AbstractFacade.conexion();
         ThirdPartyProductDTO dto = new ThirdPartyProductDTO();
         try {
-            Auxiliares a=validarTercero(productNumber,productTypeId);
-            System.out.println("A:"+a);
-            if(a!=null){   
-            userDocumentIdDTO userDocument = new userDocumentIdDTO();
-            Bank bancoProductoTercero=new Bank();
-            Bank corresponsalBank=new Bank();
-            Productos pr=em.find(Productos.class,a.getAuxiliaresPK().getIdproducto());
-            String ogs=String.format("%06d",a.getIdorigen())+String.format("%02d",a.getIdgrupo())+String.format("%06d",a.getIdsocio());
-            ArrayList<String> listaPt = new ArrayList<>();
-            listaPt.add(ogs);
-            dto.setClientBankIdentifiers(listaPt);
-            dto.setThirdPartyProductNumber(String.valueOf(thirdPartyProductType));
-            dto.setThirdPartyProductBankIdentifier(productNumber);
-            dto.setAlias(pr.getNombre());
-            dto.setCurrencyId("484");//Identificador de moneda 1 es local
-            dto.setTransactionSubType(2);
-            dto.setThirdPartyProductType(1);
-            
-            Productos_bankingly prod=em.find(Productos_bankingly.class,a.getAuxiliaresPK().getIdproducto());
-            dto.setProductType(prod.getProductTypeId());//el tipo de producto
-            
-            PersonasPK personaPK=new PersonasPK(a.getIdorigen(),a.getIdgrupo(),a.getIdsocio());
-            Persona p=em.find(Persona.class, personaPK);
-            dto.setOwnerName(p.getNombre() +" "+p.getAppaterno()+" "+p.getApmaterno());
-            
-            //Otenemos el nombre del pais de la persona
-            Colonias c=em.find(Colonias.class,p.getIdcolonia());
-            Municipios m=em.find(Municipios.class,c.getIdmunicipio());
-            Estados e=em.find(Estados.class,m.getIdestado());
-            Paises pa=em.find(Paises.class,e.getIdpais());
-            dto.setOwnerCountryId("484");//Moneda nacional interncional cambia de codigo a 840
-            dto.setOwnerEmail(p.getEmail());
-            dto.setOwnerCity(c.getNombre());
-            dto.setOwnerAddress(c.getNombre()+","+p.getNumeroext()+","+p.getNumeroint());
-            //Creamos y llenamos documento para el titular del producto de tercero
-            userDocumentIdDTO ownerDocumentId = new userDocumentIdDTO();
-            ownerDocumentId.setDocumentNumber(p.getPersonasPK().getIdorigen()+p.getPersonasPK().getIdgrupo()+p.getPersonasPK().getIdsocio());//Se a solicitado a Bankingly
-            ownerDocumentId.setDocumentType(3);//Se a solicitado a Bankingly
-            dto.setOwnerDocumentId(ownerDocumentId);
-            dto.setOwnerPhoneNumber(p.getCelular());
-            //Llenamos user document Id
-            userDocument.setDocumentNumber(p.getPersonasPK().getIdorigen()+p.getPersonasPK().getIdgrupo()+p.getPersonasPK().getIdsocio());//
-            userDocument.setDocumentType(3);            
-            dto.setUserDocumentId(userDocument);
-            //Llenamos el banco de tercero
-            bancoProductoTercero.setBankId(a.getAuxiliaresPK().getIdorigenp());
-            bancoProductoTercero.setCountryId("484");
-            Origenes o=em.find(Origenes.class,a.getAuxiliaresPK().getIdorigenp());
-            bancoProductoTercero.setDescription(o.getNombre());
-            bancoProductoTercero.setRoutingCode(null);
-            bancoProductoTercero.setHeadQuartersAddress(o.getCalle()+","+o.getNumeroint()+","+o.getNumeroext());
-            dto.setBank(bancoProductoTercero);
-            dto.setCorrespondentBank(corresponsalBank);
+            Auxiliares a = validarTercero(productNumber, productTypeId);
+            System.out.println("A:" + a);
+            if (a != null) {
+                userDocumentIdDTO userDocument = new userDocumentIdDTO();
+                Bank bancoProductoTercero = new Bank();
+                Bank corresponsalBank = new Bank();
+                Productos pr = em.find(Productos.class, a.getAuxiliaresPK().getIdproducto());
+                String ogs = String.format("%06d", a.getIdorigen()) + String.format("%02d", a.getIdgrupo()) + String.format("%06d", a.getIdsocio());
+                ArrayList<String> listaPt = new ArrayList<>();
+                listaPt.add(ogs);
+                dto.setClientBankIdentifiers(listaPt);
+                dto.setThirdPartyProductNumber(String.valueOf(thirdPartyProductType));
+                dto.setThirdPartyProductBankIdentifier(productNumber);
+                dto.setAlias(pr.getNombre());
+                dto.setCurrencyId("484");//Identificador de moneda 1 es local
+                dto.setTransactionSubType(2);
+                dto.setThirdPartyProductType(1);
+
+                Productos_bankingly prod = em.find(Productos_bankingly.class, a.getAuxiliaresPK().getIdproducto());
+                dto.setProductType(prod.getProductTypeId());//el tipo de producto
+
+                PersonasPK personaPK = new PersonasPK(a.getIdorigen(), a.getIdgrupo(), a.getIdsocio());
+                Persona p = em.find(Persona.class, personaPK);
+                dto.setOwnerName(p.getNombre() + " " + p.getAppaterno() + " " + p.getApmaterno());
+
+                //Otenemos el nombre del pais de la persona
+                Colonias c = em.find(Colonias.class, p.getIdcolonia());
+                Municipios m = em.find(Municipios.class, c.getIdmunicipio());
+                Estados e = em.find(Estados.class, m.getIdestado());
+                Paises pa = em.find(Paises.class, e.getIdpais());
+                dto.setOwnerCountryId("484");//Moneda nacional interncional cambia de codigo a 840
+                dto.setOwnerEmail(p.getEmail());
+                dto.setOwnerCity(c.getNombre());
+                dto.setOwnerAddress(c.getNombre() + "," + p.getNumeroext() + "," + p.getNumeroint());
+                //Creamos y llenamos documento para el titular del producto de tercero
+                userDocumentIdDTO ownerDocumentId = new userDocumentIdDTO();
+                ownerDocumentId.setDocumentNumber(p.getPersonasPK().getIdorigen() + p.getPersonasPK().getIdgrupo() + p.getPersonasPK().getIdsocio());//Se a solicitado a Bankingly
+                ownerDocumentId.setDocumentType(3);//Se a solicitado a Bankingly
+                dto.setOwnerDocumentId(ownerDocumentId);
+                dto.setOwnerPhoneNumber(p.getCelular());
+                //Llenamos user document Id
+                userDocument.setDocumentNumber(p.getPersonasPK().getIdorigen() + p.getPersonasPK().getIdgrupo() + p.getPersonasPK().getIdsocio());//
+                userDocument.setDocumentType(3);
+                dto.setUserDocumentId(userDocument);
+                //Llenamos el banco de tercero
+                bancoProductoTercero.setBankId(a.getAuxiliaresPK().getIdorigenp());
+                bancoProductoTercero.setCountryId("484");
+                Origenes o = em.find(Origenes.class, a.getAuxiliaresPK().getIdorigenp());
+                bancoProductoTercero.setDescription(o.getNombre());
+                bancoProductoTercero.setRoutingCode(null);
+                bancoProductoTercero.setHeadQuartersAddress(o.getCalle() + "," + o.getNumeroint() + "," + o.getNumeroext());
+                dto.setBank(bancoProductoTercero);
+                dto.setCorrespondentBank(corresponsalBank);
             }
         } catch (Exception e) {
             System.out.println("Error:" + e.getMessage());
-            em.close();
-        }finally{
-            em.close();
-        }
+          
+        } 
         return dto;
 
     }
 
-    public Auxiliares validarTercero(String opaTercero,int productType) {
-        System.out.println("productTypeId:"+productType);
-        EntityManager em = emf.createEntityManager();
-        String message="";
+    public Auxiliares validarTercero(String opaTercero, int productType) {
+        System.out.println("productTypeId:" + productType);
+        EntityManager em = AbstractFacade.conexion();
+        String message = "";
         try {
-            int o=Integer.parseInt(opaTercero.substring(0,6));
-            int p=Integer.parseInt(opaTercero.substring(6,11));
-            int a=Integer.parseInt(opaTercero.substring(11,19));
-            System.out.println(o+"-"+p+"-"+a);
-            AuxiliaresPK auxiPK=new AuxiliaresPK(o,p,a);
-            Auxiliares auxiliar=em.find(Auxiliares.class,auxiPK);
-            if(auxiliar!=null){
-                      if(auxiliar.getEstatus()!=null){
-                          Productos_bankingly pr=em.find(Productos_bankingly.class,p);
-                          if(pr.getProductTypeId()== productType){
-                               return auxiliar;
-                          }else{
-                              message="Tipo de producto tercero no coincide";
-                          }
-                      }else{
-                          message="Producto no activo";
-                      }
-            }else{
-                message="Producto tercero no encontrado para local";
+            int o = Integer.parseInt(opaTercero.substring(0, 6));
+            int p = Integer.parseInt(opaTercero.substring(6, 11));
+            int a = Integer.parseInt(opaTercero.substring(11, 19));
+            System.out.println(o + "-" + p + "-" + a);
+            AuxiliaresPK auxiPK = new AuxiliaresPK(o, p, a);
+            Auxiliares auxiliar = em.find(Auxiliares.class, auxiPK);
+            if (auxiliar != null) {
+                if (auxiliar.getEstatus() != null) {
+                    Productos_bankingly pr = em.find(Productos_bankingly.class, p);
+                    if (pr.getProductTypeId() == productType) {
+                        return auxiliar;
+                    } else {
+                        message = "Tipo de producto tercero no coincide";
+                    }
+                } else {
+                    message = "Producto no activo";
+                }
+            } else {
+                message = "Producto tercero no encontrado para local";
             }
         } catch (Exception e) {
-            System.out.println("Error validando producto de tercero :"+e.getMessage());
-            em.close();
+            System.out.println("Error validando producto de tercero :" + e.getMessage());
+          
             return null;
-        }finally{
-            em.close();
-        }
+        } 
         return null;
-        
+
     }
 
-    public void cerrar() {
-        emf.close();
+    public boolean actividad_horario() {
+        EntityManager em = AbstractFacade.conexion();
+        boolean bandera_ = false;
+        try {
+            if (util2.actividad(em)) {
+                bandera_ = true;
+            }
+        } catch (Exception e) {
+            System.out.println("Error al verificar el horario de actividad");
+         
+        }
+
+        return bandera_;
     }
+
 }

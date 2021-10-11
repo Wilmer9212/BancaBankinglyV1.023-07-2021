@@ -17,9 +17,6 @@ import javax.ws.rs.HeaderParam;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import com.fenoreste.rest.ResponseDTO.*;
-import com.fenoreste.rest.dao.DAOGeneral;
-import com.fenoreste.rest.dao.MetodosUtil;
-import com.fenoreste.rest.dao.MetodosUtilDAO;
 import java.io.File;
 import java.io.FileFilter;
 import java.nio.file.Files;
@@ -75,6 +72,11 @@ public class ProductsResources {
           Si las credenciales son correctas avanza        
          ================================================================================================*/
         ProductsDAO dao = new ProductsDAO();
+        
+        if(!dao.actividad_horario()){
+            jsonError.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(jsonError).build();
+        }
         try {
             List<ProductsDTO> listaDTO = dao.getProductos(ClientBankIdentifiers, ProductTypes);
             if (listaDTO != null) {
@@ -87,10 +89,8 @@ public class ProductsResources {
             }
         } catch (Exception e) {
             System.out.println("Error interno en el servidor");
-            dao.cerrar();
-        } finally {
-            dao.cerrar();
-        }
+            
+        } 
 
         return null;
 
@@ -131,6 +131,11 @@ public class ProductsResources {
         }
         System.out.println("Lista de opas:" + productsBank);
         ProductsDAO dao = new ProductsDAO();
+        
+         if(!dao.actividad_horario()){
+            jsonError.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+             return Response.status(Response.Status.BAD_GATEWAY).entity(jsonError).build();
+        }
         try {
             List<ProductsConsolidatePositionDTO> ListPC = dao.ProductsConsolidatePosition(ClientBankIdentifiers, productsBank);
             if (ListPC != null) {
@@ -145,10 +150,8 @@ public class ProductsResources {
             }
         } catch (Exception e) {
             System.out.println("Error aqui:" + e.getMessage());
-            dao.cerrar();
-        } finally {
-            dao.cerrar();
-        }
+            
+        } 
 
         return null;
 
@@ -163,7 +166,7 @@ public class ProductsResources {
         String clientBankIdentifier_ = "";
         String productBankIdentifier_ = "";
         int productType_ = 0;
-        
+        JsonObject json = new JsonObject();
         //MetodosUtilDAO mt=new MetodosUtilDAO();
         /*if(mt.actividad()==false){
             JsonObject actividad=new JsonObject();
@@ -172,12 +175,16 @@ public class ProductsResources {
         }*/
         
         ProductsDAO dao = new ProductsDAO();
+         if(!dao.actividad_horario()){
+            json.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(json).build();
+        }
         try {
             clientBankIdentifier_ = request_.getString("clientBankIdentifier");
             productBankIdentifier_ = request_.getString("productBankIdentifier");
             productType_ = request_.getInt("productType");
             List<ProductBankStatementDTO> listaECuentas = dao.statements(clientBankIdentifier_, productBankIdentifier_, productType_);
-            JsonObject json = new JsonObject();
+            
             json.put("bankStatements", listaECuentas);
            
                 eliminarPorExtension(ruta(),"txt");
@@ -185,13 +192,8 @@ public class ProductsResources {
             
             return Response.status(Response.Status.OK).entity(json).build();
         } catch (Exception e) {
-            dao.cerrar();
-            System.out.println("Error al leer json:" + e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
-        } finally {
-            System.out.println("saliooooooooooooooooooooooooooooooooooooooooooo");
-            dao.cerrar();
-        }
+        } 
     }
      
     
@@ -228,12 +230,19 @@ public class ProductsResources {
         System.out.println("cadena:" + cadena);
         JSONObject RequestData = new JSONObject(cadena);
         String fileId = "";
+        
         try {
             fileId = RequestData.getString("productBankStatementId");
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_GATEWAY).entity(e.getMessage()).build();
         }
-        JsonObject jsonMessage=new JsonObject();         
+        JsonObject jsonMessage=new JsonObject();  
+        ProductsDAO dao=new ProductsDAO();
+        
+        if(!dao.actividad_horario()){
+            jsonMessage.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+           return Response.status(Response.Status.BAD_GATEWAY).entity(jsonMessage).build();
+        }
         try {
             String filePath = ruta() + fileId + ".pdf";
             System.out.println("fiklePAth:"+filePath);

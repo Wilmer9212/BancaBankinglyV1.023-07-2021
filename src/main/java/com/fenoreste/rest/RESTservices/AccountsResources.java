@@ -26,6 +26,11 @@ public class AccountsResources {
         String accountId = "";        
         JsonObject Json_De_Error = new JsonObject();
         AccountsDAO metodos = new AccountsDAO();
+         if(!metodos.actividad_horario()){
+            Json_De_Error.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Json_De_Error).build();
+        }
         try {
             JSONObject jsonRecibido = new JSONObject(cadenaJson);
             accountId = jsonRecibido.getString("productBankIdentifier");
@@ -52,24 +57,19 @@ public class AccountsResources {
                     return Response.status(Response.Status.OK).entity(cuenta).build();
                 } else {
                     Json_De_Error.put("Error", "ERROR PRODUCTO NO ENCONTRADO");
-                    metodos.cerrar();
-                    return Response.status(Response.Status.BAD_REQUEST).entity(Json_De_Error).build();
+                     return Response.status(Response.Status.BAD_REQUEST).entity(Json_De_Error).build();
                 }
             } catch (Exception e) {
-                metodos.cerrar();
                 return Response.status(Response.Status.BAD_REQUEST).entity(Json_De_Error).build();
             }
 
         } else {
             Json_De_Error.put("Error", "FORMATO DE INDETIFICADOR INVALIDO");
-            metodos.cerrar();
-            return Response.status(Response.Status.BAD_REQUEST).entity(Json_De_Error).build();
+             return Response.status(Response.Status.BAD_REQUEST).entity(Json_De_Error).build();
         }
       } catch (Exception e) {
-        metodos.cerrar();
+       
         return null;
-      }finally{
-       metodos.cerrar();
       }
 
     }
@@ -84,6 +84,10 @@ public class AccountsResources {
         JsonObject Json_De_Error = new JsonObject();
         String accountId = jsonRecibido.getString("productBankIdentifier");
         AccountsDAO metodos = new AccountsDAO();
+          if(!metodos.actividad_horario()){
+            Json_De_Error.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+             return Response.status(Response.Status.BAD_GATEWAY).entity(Json_De_Error).build();
+        }
         try{
         boolean bandera = true;
         for (int i = 0; i < accountId.length(); i++) {
@@ -118,8 +122,6 @@ public class AccountsResources {
         }catch(Exception e){
            
             System.out.println("Error:"+e.getMessage());
-        }finally{
-            metodos.cerrar();
         }
        return null;
     }
@@ -138,6 +140,10 @@ public class AccountsResources {
         int PageStartIndex = 0;        
         JsonObject Error=new JsonObject();
         String orderBy="";
+          if(!dao.actividad_horario()){
+            Error.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(Error).build();
+        }
         try{
         try {
             JSONObject jsonRecibido = new JSONObject(cadenaJson);
@@ -174,10 +180,8 @@ public class AccountsResources {
 
         } 
         }catch(Exception e){
-            dao.cerrar();
-            System.out.println("Error al consumir:"+e.getMessage());
-        }finally {
-            dao.cerrar();
+             System.out.println("Error al consumir:"+e.getMessage());
+        
         }
         return null;
 }

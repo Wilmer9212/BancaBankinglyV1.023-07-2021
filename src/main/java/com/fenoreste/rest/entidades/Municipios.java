@@ -18,7 +18,7 @@ import javax.persistence.Table;
  *
  * @author wilmer
  */
-@Cacheable(false)
+
 @Entity
 @Table(name = "municipios")
 public class Municipios implements Serializable {

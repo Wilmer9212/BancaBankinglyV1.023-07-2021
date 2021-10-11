@@ -1,5 +1,6 @@
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.Util.UtilidadesGenerales;
 import com.fenoreste.rest.DTO.OpaDTO;
 import com.fenoreste.rest.DTO.TablasDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
@@ -11,6 +12,7 @@ import com.fenoreste.rest.WsTDD.TarjetaDeDebito;
 import com.fenoreste.rest.entidades.AuxiliaresPK;
 import com.fenoreste.rest.entidades.Productos;
 import com.fenoreste.rest.entidades.Auxiliares;
+import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.WsSiscoopFoliosTarjetasPK1;
 import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
 import java.math.BigInteger;
@@ -25,26 +27,23 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 
 public abstract class FacadeAccounts<T> {
     Utilidades util=new Utilidades();
     Calendar calendar = Calendar.getInstance();
     Date hoy = calendar.getTime();
-    private static EntityManagerFactory emf;
-
-    public FacadeAccounts(Class<T> entityClass) {
-        emf = AbstractFacade.conexion();
-    }
-    EntityManager em = null;
+    
+    UtilidadesGenerales util2=new UtilidadesGenerales();
+    public FacadeAccounts(Class<T> entityClass) {}
+ 
 
     public AccountDetailsDTO GetAccountDetails(String accountId) {
         //0302823264400006853 opa con mivimientos 29/11/2020 24 Hrs
         //0302163404400000226 opa con movimientos 28/11/2020 48 Hrs
         //0302203666400000037 opa sin movimientos durante 48 Hrs
         //
-        em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         OpaDTO opa=util.opa(accountId);
         AccountDetailsDTO cuenta = null;
         System.out.println("O:" + opa.getIdorigenp() + ",P:" + opa.getIdproducto() + ",A:" + opa.getIdauxiliar());
@@ -63,7 +62,7 @@ public abstract class FacadeAccounts<T> {
             //Si el producto es TDD
             //Leemos ws de TDD Alestra
             TarjetaDeDebito wsTDD=new TarjetaDeDebito();
-            TablasDTO productoWs=new TarjetaDeDebito().productoTddwebservice(em);
+            Tablas productoWs=new TarjetaDeDebito().productoTddwebservice(em);
             if (caja().contains("SANNICOLAS") && Integer.parseInt(productoWs.getDato2())==aux.getAuxiliaresPK().getIdproducto()) {
                 WsSiscoopFoliosTarjetasPK1 foliosPK=new WsSiscoopFoliosTarjetasPK1(aux.getAuxiliaresPK().getIdorigenp(),aux.getAuxiliaresPK().getIdproducto(),aux.getAuxiliaresPK().getIdauxiliar());
                 BalanceQueryResponseDto responseSaldo=wsTDD.saldoTDD(foliosPK,em);
@@ -141,8 +140,9 @@ public abstract class FacadeAccounts<T> {
         boolean isDC = false;
         String Description = "";
         List<AccountLast5MovementsDTO> ListaDTO = new ArrayList<AccountLast5MovementsDTO>();
+        EntityManager em = AbstractFacade.conexion();
         try {
-            em = emf.createEntityManager();
+            ;
             /*String consulta = " SELECT m.* "
                     + "         FROM auxiliares_d m"
                     + "         WHERE replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')= ? ORDER BY fecha DESC LIMIT 5";*/
@@ -183,11 +183,8 @@ public abstract class FacadeAccounts<T> {
             System.out.println("ListaDTO:" + ListaDTO);
 
         } catch (Exception e) {
-            em.close();
             System.out.println("Error en GetAccountLast5Movements:" + e.getMessage());
-        } finally {
-            em.close();
-        }
+        } 
         return ListaDTO;
     }
 
@@ -198,6 +195,7 @@ public abstract class FacadeAccounts<T> {
         List<AccountMovementsDTO> ListaDTO = new ArrayList<AccountMovementsDTO>();
         String complemento = "";
         OpaDTO opa=util.opa(productBankIdentifier);
+        EntityManager em = AbstractFacade.conexion();
         try {
             System.out.println("orderB:" + orderBy);
             switch (orderBy.toUpperCase()) {
@@ -250,7 +248,7 @@ public abstract class FacadeAccounts<T> {
                     break;
 
             }
-            EntityManager em = emf.createEntityManager();
+            
             int pageNumber = pageStartIndex;
             int pageSizes = pageSize;
             int inicioB = 0;
@@ -323,13 +321,10 @@ public abstract class FacadeAccounts<T> {
                     ListaDTO.add(dto);
                 }
             } catch (Exception e) {
-                em.close();
                 System.out.println("Error:" + e.getMessage());
             }
-            em.close();
             System.out.println("salio y ListaDTO:" + ListaDTO);
         } catch (Exception e) {
-            em.close();
             System.out.println("Error en account:" + e.getMessage());
         }
         return ListaDTO;
@@ -395,6 +390,7 @@ public abstract class FacadeAccounts<T> {
         double saldo2 = 0.0;
         double saldo3 = 0.0;
         double saldos[] = new double[3];
+        EntityManager em = AbstractFacade.conexion();
         if (!fecha.equals("") && !fecha2.equals("")) {
             String consulta = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
                     + " AND idproducto=" + p
@@ -417,15 +413,15 @@ public abstract class FacadeAccounts<T> {
             try {
                 saldo1 = Double.parseDouble(String.valueOf(query.getSingleResult()));
             } catch (Exception e) {
-            };
+            }
             try {
                 saldo2 = Double.parseDouble(String.valueOf(query2.getSingleResult()));
             } catch (Exception e) {
-            };
+            }
             try {
                 saldo3 = Double.parseDouble(String.valueOf(query3.getSingleResult()));
             } catch (Exception e) {
-            };
+            }
 
             System.out.println("Saliendo");
             saldos[0] = saldo1;
@@ -441,7 +437,7 @@ public abstract class FacadeAccounts<T> {
     public int contadorAuxD(String productBankIdentifier, String dateFromFilter, String dateToFilter) {
         String consulta = "";
         int count = 0;
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();//emf.createEntityManager()EntityManager em = emf.createEntityManager();EntityManager em = emf.createEntityManager();
         try {
             if (!dateFromFilter.equals("") && !dateToFilter.equals("")) {
                 consulta = " SELECT count(*)"
@@ -475,12 +471,11 @@ public abstract class FacadeAccounts<T> {
         } catch (Exception e) {
             System.out.println("Error al contar registros:" + e.getMessage());
         }
-        em.close();
         return count;
     }
 
     public String caja() {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         String nombreOrigen = "";
         try {
             String consulta = "SELECT replace(nombre,' ','') FROM origenes WHERE matriz=0";
@@ -488,23 +483,25 @@ public abstract class FacadeAccounts<T> {
             Query query = em.createNativeQuery(consulta);
             nombreOrigen = String.valueOf(query.getSingleResult());
         } catch (Exception e) {
-            em.clear();
-            em.close();
             System.out.println("Error al crear origen trabajando:" + e.getMessage());
             return "";
-        } finally {
-            em.clear();
-            em.close();
-        }
+        } 
         return nombreOrigen.replace(" ", "").toUpperCase();
     }
-
-    /**
-     * *********************************Cerrando conexiones
-     * ***********************************
-     */
-    public void cerrar() {
-        emf.close();
+    
+    public boolean actividad_horario() {
+        EntityManager em = AbstractFacade.conexion();//emf.createEntityManager()EntityManager em = emf.createEntityManager();EntityManager em = emf.createEntityManager();
+        boolean bandera_=false;
+        try {
+            if (util2.actividad(em)) {
+                bandera_=true;
+            }
+        } catch (Exception e) {
+            System.out.println("Error al verificar el horario de actividad");
+           
+        } 
+        
+        return bandera_;
     }
 
 }

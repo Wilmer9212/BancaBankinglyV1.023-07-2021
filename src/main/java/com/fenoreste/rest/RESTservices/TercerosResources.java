@@ -125,7 +125,12 @@ public class TercerosResources {
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_GATEWAY).entity(e.getMessage()).build();
         }
+        com.github.cliftonlabs.json_simple.JsonObject jsonR = new JsonObject();
         TercerosDAO dao = new TercerosDAO();
+        if(!dao.actividad_horario()){
+            jsonR.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+           return Response.status(Response.Status.BAD_GATEWAY).entity(jsonR).build();
+        }
         try {
             System.out.println("si");
             BackendOperationResultDTO response = dao.validarProductoTerceros(dtoTercero);
@@ -133,14 +138,9 @@ public class TercerosResources {
             jsonResponse.put("BackendOperationResult", response);
             return Response.status(Response.Status.OK).entity(jsonResponse).build();
         } catch (Exception e) {
-            System.out.println("Error:" + e.getMessage());
-            e.printStackTrace();
-            dao.cerrar();
-        } finally {
-            dao.cerrar();
-        }
-
-        return null;
+           return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+           
+        } 
     }
 
     @Path("/Party/Account/ProductOwnerAndCurrency")
@@ -166,6 +166,12 @@ public class TercerosResources {
         }
         
         TercerosDAO dao = new TercerosDAO();
+        
+        if(!dao.actividad_horario()){
+            JsonObject error=new JsonObject();
+            error.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            return Response.status(Response.Status.BAD_GATEWAY).entity(error).build();
+        }
         userDocumentIdDTO documento=new userDocumentIdDTO();
         try {
             ThirdPartyProductDTO dto = dao.cosultaProductosTerceros(productNumber_, productTypeId_, documento, thirdPartyProductType_);
@@ -174,12 +180,8 @@ public class TercerosResources {
             return Response.status(Response.Status.OK).entity(third).build();
         } catch (Exception e) {
             System.out.println("Error:" + e.getMessage());
-            e.printStackTrace();
-            dao.cerrar();
-        } finally {
-            dao.cerrar();
-        }
-
+           
+        } 
         return null;
     }
 

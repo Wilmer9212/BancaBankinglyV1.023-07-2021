@@ -6,7 +6,6 @@
 package com.fenoreste.rest.RESTservices;
 
 import com.fenoreste.rest.Util.AbstractFacade;
-import com.fenoreste.rest.Util.AbstractFacade_1;
 import com.fenoreste.rest.dao.CustomerDAO;
 import com.fenoreste.rest.entidades.Auxiliares;
 import com.fenoreste.rest.entidades.Persona;
@@ -39,9 +38,10 @@ public class TestResources {
     public Response auth(String cadenaJson) {
         JSONObject request=new JSONObject(cadenaJson);
         JsonObject jsonOb=new JsonObject();
-        EntityManagerFactory emf=AbstractFacade.conexion();
+        //EntityManagerFactory emf=AbstractFacade.conexion();
+        //EntityManagerFactory em=AbstractFacade.conexion();
         try {
-            EntityManager em=emf.createEntityManager();
+            EntityManager em=AbstractFacade.conexion();
             String usuario=request.getString("username");
             String c="SELECT * FROM usuarios_bancam_bankinglyTest WHERE username='"+usuario+"' and estatus=true";
             Query q=em.createNativeQuery(c,banca_movil_usuarios.class);
@@ -52,10 +52,10 @@ public class TestResources {
         } catch (Exception e) {
             jsonOb.put("user","null");
             System.out.println("Error al buscar user:"+e.getMessage());
-            emf.close();            
+            //emf.close();            
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jsonOb).build();
         }finally{
-            emf.close();
+            //emf.close();
         }
         return Response.status(Response.Status.OK).entity(jsonOb).build();
         
@@ -71,9 +71,7 @@ public class TestResources {
         try {
             dao.pruebasPrezzta();
         } catch (Exception e) {
-            dao.cerrar();
-        }finally{
-            dao.cerrar();
+           
         }
         return null;
     }

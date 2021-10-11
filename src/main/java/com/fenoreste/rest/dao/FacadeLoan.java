@@ -1,5 +1,6 @@
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.Util.UtilidadesGenerales;
 import com.fenoreste.rest.DTO.OpaDTO;
 import com.fenoreste.rest.ResponseDTO.FeesDueData;
 import com.fenoreste.rest.Util.AbstractFacade;
@@ -18,13 +19,16 @@ import com.fenoreste.rest.entidades.LoanRates;
 import com.fenoreste.rest.entidades.Loan_Fee_Status;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Query;
 
@@ -33,15 +37,13 @@ public abstract class FacadeLoan<T> {
     Utilidades util = new Utilidades();
     Calendar calendar = Calendar.getInstance();
     Date hoy = calendar.getTime();
-    private static EntityManagerFactory emf;
+    UtilidadesGenerales util2 = new UtilidadesGenerales();
 
     public FacadeLoan(Class<T> entityClass) {
-        emf = AbstractFacade.conexion();
     }
-    EntityManager em = null;
 
     public LoanDTO Loan(String productBankIdentifier) {
-        em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         OpaDTO opa = util.opa(productBankIdentifier);
         AccountDetailsDTO cuenta = null;
         System.out.println("O:" + opa.getIdorigenp() + ",P:" + opa.getIdproducto() + ",A:" + opa.getIdauxiliar());
@@ -88,26 +90,24 @@ public abstract class FacadeLoan<T> {
                 System.out.println("LoanPre:" + dto);
             }
         } catch (Exception e) {
-            em.close();
+
             System.out.println("Error en GetAccountDetails:" + e.getMessage());
-        }finally{
-            em.close();
         }
-        
+
         return dto;//cuenta;
 
     }
 
     public LoanFee LoanFee(String productBankIdentifier, int feeNumber) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         LoanFee loanFee = null;
-        OpaDTO opa=util.opa(productBankIdentifier);
+        OpaDTO opa = util.opa(productBankIdentifier);
 
         try {
-            AuxiliaresPK pk = new AuxiliaresPK(opa.getIdorigenp(),opa.getIdproducto(), opa.getIdauxiliar());
+            AuxiliaresPK pk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar());
             Auxiliares aux = em.find(Auxiliares.class, pk);
             //Obtengo informacion con el sai_auxiliar hasta la fecha actual, si hay dudas checar el catalogo o atributos que devuelve la funcion
-            String sai_auxiliar = "SELECT  sai_auxiliar(" + opa.getIdorigenp() + "," +opa.getIdproducto() + "," + opa.getIdauxiliar() + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
+            String sai_auxiliar = "SELECT  sai_auxiliar(" + opa.getIdorigenp() + "," + opa.getIdproducto() + "," + opa.getIdauxiliar() + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
             Query RsSai = em.createNativeQuery(sai_auxiliar);
             String sai = RsSai.getSingleResult().toString();
             String[] parts = sai.split("\\|");
@@ -134,14 +134,21 @@ public abstract class FacadeLoan<T> {
             }
 
             Loan_Fee_Status loanf = em.find(Loan_Fee_Status.class, loanfeests);
-
+            LocalDateTime now = LocalDateTime.now();
             Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
+            System.out.println("ammmVenceeeeeeeeeee:"+convertToLocalDateViaInstant(amm.getVence()));
+            System.out.println("ammmVenceeeeeeeeeee:"+convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
+            String converted=String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
+            System.out.println("convrteddddddd:"+converted);
             Date d = amm.getVence();
+            Date today = amm.getVence();
+            LocalDateTime ldt = LocalDateTime.ofInstant(today.toInstant(), ZoneId.systemDefault());
+
             loanFee = new LoanFee(
                     Double.parseDouble(aux.getSaldo().toString()),//Saldo o balance del prestamo principal
                     amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion(),
                     Double.parseDouble(amm.getAbono().toString()),
-                    amm.getVence().toString(),
+                    converted,//String.valueOf(ldt),//amm.getVence().toString(),
                     iovencido,
                     imvencido,
                     loanf.getId(),
@@ -149,24 +156,26 @@ public abstract class FacadeLoan<T> {
                     abonoT);
         } catch (Exception e) {
             System.out.println("Error en LoanFee:" + e.getMessage());
-            em.close();
-        }finally{
-           em.close();
+
         }
 
         return loanFee;
     }
-
+public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
+    return dateToConvert.toInstant()
+      .atZone(ZoneId.systemDefault())
+      .toLocalDateTime();
+}
     public List<LoanFee> LoanFees(String productBankIdentifier, int feesStatus, int pageSize, int pageStartIndex, String order) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         LoanFee loanFee = null;
-        OpaDTO opa=util.opa(productBankIdentifier);
+        OpaDTO opa = util.opa(productBankIdentifier);
         List<Amortizaciones> ListaAmortizaciones = new ArrayList<>();
         List<LoanFee> listaFees = new ArrayList<>();
         try {
             System.out.println("dento de try");
 
-            AuxiliaresPK pk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(),opa.getIdauxiliar());
+            AuxiliaresPK pk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar());
             Auxiliares aux = em.find(Auxiliares.class, pk);
             System.out.println("todavia:");
             //Obtengo informacion con el sai_auxiliar hasta la fecha actual, si hay dudas checar el catalogo o atributos que devuelve la funcion
@@ -227,14 +236,15 @@ public abstract class FacadeLoan<T> {
                     loanfeests = 2;
                 }
                 Loan_Fee_Status loanf = em.find(Loan_Fee_Status.class, loanfeests);
-
+                LocalDateTime now = LocalDateTime.now();
                 Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
                 Date d = amm.getVence();
+                String converted=String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
                 loanFee = new LoanFee(
                         Double.parseDouble(aux.getSaldo().toString()),//Saldo o balance del prestamo principal
                         amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion(),
                         Double.parseDouble(amm.getAbono().toString()),
-                        amm.getVence().toString(),
+                        converted,//String.valueOf(now+"Z"),//amm.getVence().toString(),
                         iovencido,
                         imvencido,
                         loanf.getId(),
@@ -245,18 +255,16 @@ public abstract class FacadeLoan<T> {
 
         } catch (Exception e) {
             System.out.println("Error en LoanFee:" + e.getMessage());
-            em.close();
-        }finally{
-            em.close();
+
         }
         System.out.println("ListaFees:" + listaFees);
         return listaFees;
     }
 
     public List<LoanRate> LoanRates(String productBankIdentifier, int pageSize, int pageStartIndex) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         LoanRate loanRate = null;
-        OpaDTO opa=util.opa(productBankIdentifier);
+        OpaDTO opa = util.opa(productBankIdentifier);
         List<LoanRate> listaRates = new ArrayList<>();
         try {
             String consulta = "SELECT fechaactivacion,tasaio,tasaim,tasaiod FROM auxiliares WHERE"
@@ -267,21 +275,23 @@ public abstract class FacadeLoan<T> {
 
             Query queryA = em.createNativeQuery(consulta);
             List<Object[]> MiLista = queryA.getResultList();
-
+            System.out.println("siiiiiiiiiiiiiiiiii pasoooooooooo");
             try {
                 EntityTransaction tr1 = em.getTransaction();
                 tr1.begin();
-                em.createNativeQuery("DELETE FROM loanrates WHERE opa='" + opa.getIdorigenp() + "-" +opa.getIdproducto() + "-" + opa.getIdauxiliar()+ "'").executeUpdate();
+                em.createNativeQuery("DELETE FROM loanrates WHERE opa='" + opa.getIdorigenp() + "-" + opa.getIdproducto() + "-" + opa.getIdauxiliar() + "'").executeUpdate();
                 if (tr1.isActive()) {
                     tr1.commit();
                 }
             } catch (Exception e) {
                 System.out.println("Error en eliminar:" + e.getMessage());
             }
+            System.out.println("aunuuuu pasoooooooooooooooooo");
+             LocalDateTime now = LocalDateTime.now();
+                     System.out.println("nowcccccccccccccccccccccccccccccccccccccc:"+String.valueOf(now)+"Z");
             for (Object[] lista : MiLista) {
 
                 for (int x = 0; x < lista.length; x++) {
-                    System.out.println("Obj:" + lista[x]);
                     if (x > 0) {
                         try {
                             System.out.println("Listax:" + lista[x]);
@@ -311,9 +321,17 @@ public abstract class FacadeLoan<T> {
                 queryLoan.setFirstResult(pageStartIndex);
                 queryLoan.setMaxResults(pageSize);
                 List<LoanRates> listaRatess = queryLoan.getResultList();
+                String converted="";//String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
                 for (int j = 0; j < listaRatess.size(); j++) {
+                    
                     LoanRates loanrtt = listaRatess.get(j);
-                    loanRate = new LoanRate(loanrtt.getInitialdate(), loanrtt.getRate());
+                    String str = "2016-03-04 11:30:40";
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime dateTime = LocalDateTime.parse(str, formatter);
+                     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime localDate = LocalDateTime.parse("2021-10-07"+" 00:00:00", dtf);
+                    converted=loanrtt.getInitialdate()+"T00:00:00.000Z";////String.valueOf(convertToLocalDateTimeViaInstant(.getInitialdate()))+":00.000Z");
+                    loanRate = new LoanRate(/*String.valueOf(String.valueOf(now)+"Z")*/converted, loanrtt.getRate());
                     System.out.println("LoanRattt:" + loanrtt);
                     listaRates.add(loanRate);
                 }
@@ -349,25 +367,22 @@ public abstract class FacadeLoan<T> {
              */
 
         } catch (Exception e) {
-            em.close();
+
             System.out.println("Error en LoanFee:" + e.getMessage());
-        }finally{
-            em.close();
         }
-        
 
         return listaRates;
     }
 
     public List<LoanPayment> loanPayments(String productBankIdentifier, int pageSize, int startPageIndex) {
-        EntityManager em = emf.createEntityManager();
-        OpaDTO opa=util.opa(productBankIdentifier);
+        EntityManager em = AbstractFacade.conexion();
+        OpaDTO opa = util.opa(productBankIdentifier);
 
         List<LoanPayment> listPayment = new ArrayList<LoanPayment>();
         LoanPayment loanp = null;
 
         try {
-            AuxiliaresPK auxpk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(),opa.getIdauxiliar());
+            AuxiliaresPK auxpk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar());
             Auxiliares auxiliares = em.find(Auxiliares.class, auxpk);
             String con = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar() + " AND cargoabono=1";
             System.out.println("CON:" + con);
@@ -411,6 +426,7 @@ public abstract class FacadeLoan<T> {
 
             }
             int payEstatus = 0;
+            String converted="";
             for (int i = 0; i < MiLista.size(); i++) {
                 System.out.println("aun");
                 AuxiliaresD auxd = MiLista.get(i);
@@ -419,34 +435,36 @@ public abstract class FacadeLoan<T> {
                 } else {
                     payEstatus = 2;
                 }
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime localDate = LocalDateTime.parse("2021-10-07"+" 00:00:00", dtf);
+                    converted=String.valueOf(convertToLocalDateTimeViaInstant(auxd.getAuxiliaresDPK().getFecha())+"Z");
+                    LocalDateTime now = LocalDateTime.now();
                 loanp = new LoanPayment(Double.parseDouble(auxiliares.getSaldo().toString()),
                         0,
                         payEstatus,
                         Double.parseDouble(auxd.getMontoio().toString()),
                         Double.parseDouble(auxd.getMontoiva().toString()),
                         Double.parseDouble(auxd.getMontoim().toString()),
-                        String.valueOf(auxd.getAuxiliaresDPK().getFecha()),
+                        converted,//String.valueOf(now+"Z"),//auxd.getAuxiliaresDPK().getFecha()),
                         Double.parseDouble(auxd.getMonto().toString()),
                         Double.parseDouble(auxd.getMonto().toString()) + Double.parseDouble(auxd.getMontoio().toString()) + Double.parseDouble(auxd.getMontoim().toString()));
 
-                System.out.println("LoanP:" + loanp);
+                System.out.println("LoanP:" + String.valueOf(localDate));
                 listPayment.add(loanp);
             }
             System.out.println("listaPayments:" + listPayment);
 
         } catch (Exception e) {
-            em.close();
+
             System.out.println("Error al buscar auxiliares d:" + e.getMessage());
 
-        }finally{
-            em.close();
         }
         return listPayment;
     }
 
     //Obetner cuota vencida
     public FeesDueData RSFeesDueData(int o, int p, int a) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         String sai_auxiliar = "SELECT * FROM sai_auxiliar(" + o + "," + p + "," + a + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
         FeesDueData FeesDueDataRS = null;
         try {
@@ -470,9 +488,7 @@ public abstract class FacadeLoan<T> {
             System.out.println("FeesDueData:" + FeesDueDataRS);
         } catch (Exception e) {
             System.out.println("Error en FeesDueData:" + e.getMessage());
-            em.close();
-        }finally{
-            em.close();
+
         }
         System.out.println("FeesDueData:" + FeesDueDataRS);
         return FeesDueDataRS;
@@ -480,7 +496,7 @@ public abstract class FacadeLoan<T> {
 
     //Metodo para devolver abonos vencidos
     public int RSFeesDue(int o, int p, int a) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         String sai_auxiliar = "SELECT * FROM sai_auxiliar(" + o + "," + p + "," + a + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
         int abonosVencidos = 0;
         try {
@@ -492,16 +508,14 @@ public abstract class FacadeLoan<T> {
             System.out.println("Abonos Vencidos:" + abonosVencidos);
         } catch (Exception e) {
             System.out.println("Error en FeesDueData:" + e.getMessage());
-            em.close();
-        }finally{
-            em.close();
+
         }
         return abonosVencidos;
     }
 
     //Devuelve LoanFee para apoyo en GetLoanPrincipal para obtener la proxima amortizacion
     public LoanFee nextFee(int o, int p, int a) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         //Obejeto para cuota
         LoanFee loanFee = new LoanFee();
 
@@ -511,15 +525,13 @@ public abstract class FacadeLoan<T> {
             //Obtengo informacion con el sai_auxiliar hasta la fecha actual, si hay dudas checar el catalogo o atributos que devuelve la funcion(
             //Porque con el sai auxiliar obtengo fecha de la proxima amortizacion y voy a buscarla a la tabla de amortizaciones
             String sai_auxiliar = "SELECT * FROM sai_auxiliar(" + o + "," + p + "," + a + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
-            System.out.println("SAIIIIIIIIIIIII:"+sai_auxiliar);
             Query RsSai = em.createNativeQuery(sai_auxiliar);
             String sai = RsSai.getSingleResult().toString();
             String[] parts = sai.split("\\|");
             List list = Arrays.asList(parts);
-            
-            
-            for(int i=0;i<list.size();i++){
-                System.out.println("i:"+i+"="+list.get(i));
+
+            for (int i = 0; i < list.size(); i++) {
+                System.out.println("i:" + i + "=" + list.get(i));
             }
 
             //Obtengo la amortizacion que se vence
@@ -527,7 +539,7 @@ public abstract class FacadeLoan<T> {
                     + " AND idproducto=" + p
                     + " AND idauxiliar=" + a
                     + " AND vence='" + list.get(10) + "'";//en la pocision 8 esta la fecha de vencimiento
-            System.out.println("consulta_amortizacion:"+consultaA);
+            System.out.println("consulta_amortizacion:" + consultaA);
             Query query_next_fee = em.createNativeQuery(consultaA, Amortizaciones.class);
             Amortizaciones amm = (Amortizaciones) query_next_fee.getSingleResult();
             Double iovencido = Double.parseDouble(list.get(12).toString()) + Double.parseDouble(list.get(17).toString());
@@ -543,15 +555,12 @@ public abstract class FacadeLoan<T> {
                 estatus_amortizacion = 2;
             }
 
-            //Me sirve para obtener la descripcion del estatus de la amortizacion
-            Loan_Fee_Status loanf = em.find(Loan_Fee_Status.class, estatus_amortizacion);
-
             Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
 
             loanFee.setCapitalBalance(Double.parseDouble(aux.getSaldo().toString()));//Saldo o balance actual del prestamo
             loanFee.setFeeNumber(amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion());//Numero de cuota
-            loanFee.setPrincipalAmount(Double.parseDouble(amm.getAbono().toString()));//monto de la cuota
-            loanFee.setDueDate(amm.getVence().toString());//fecha de vencimiento
+            loanFee.setPrincipalAmount(Double.parseDouble(String.valueOf(list.get(11))));//monto de la cuota
+            loanFee.setDueDate(String.valueOf(list.get(10)));//fecha de vencimiento
             loanFee.setInterestAmount(iovencido);//Monto de interes
             loanFee.setOverdueAmount(imvencido);//Monto de mora
             loanFee.setFeeStatusId(estatus_amortizacion);//Estado de la amortizacion
@@ -569,10 +578,8 @@ public abstract class FacadeLoan<T> {
                     Double.parseDouble(amm.getAbono().toString()),
                     abonoT);*/
         } catch (Exception e) {
-            em.close();
+
             System.out.println("Error en LoanFee:" + e.getMessage());
-        }finally{
-            em.close();
         }
 
         return loanFee;
@@ -580,7 +587,7 @@ public abstract class FacadeLoan<T> {
 
     //Metodo para devolver dias vencidos
     public int RSOverdueDays(int o, int p, int a) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         String sai_auxiliar = "SELECT * FROM sai_auxiliar(" + o + "," + p + "," + a + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
         int diasVencidos = 0;
         try {
@@ -591,28 +598,24 @@ public abstract class FacadeLoan<T> {
             diasVencidos = Integer.parseInt(list.get(3).toString());
         } catch (Exception e) {
             System.out.println("Error en FeesDueData:" + e.getMessage());
-            em.close();
-        }finally{
-            em.close();
+
         }
 
         return diasVencidos;
     }
 
     public int tipoproducto(int idproducto) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         int tipoproducto = 0;
         try {
             String consulta = "SELECT tipoproducto FROM productos WHERE idproducto=" + idproducto;
             Query query = em.createNativeQuery(consulta);
             tipoproducto = Integer.parseInt(String.valueOf(query.getSingleResult()));
         } catch (Exception e) {
-            em.close();
+
             System.out.println("Error en buscar tipoproducto:" + e.getMessage());
-        }finally{
-            em.close();
         }
-        
+
         return tipoproducto;
     }
 
@@ -627,33 +630,43 @@ public abstract class FacadeLoan<T> {
         System.out.println("date:" + date);
         return date;
     }
+    
+    public LocalDate convertToLocalDateViaInstant(Date dateToConvert) {
+    return dateToConvert.toInstant()
+      .atZone(ZoneId.systemDefault())
+      .toLocalDate();
+}
 
     public int contadorGeneral(String productBankIdentifier, int identificador, int feesstatus) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         int cont = 0;
         OpaDTO opa = util.opa(productBankIdentifier);
         try {
             String consulta = "";
-            if (identificador == 1) {
-                if (feesstatus == 1) {
-                    consulta = "SELECT count(*) FROM amortizaciones WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar() + " AND todopag=true";
-                } else if (feesstatus == 2) {
-                    consulta = "SELECT count(*) FROM amortizaciones WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar() + " AND todopag=false";
-                } else if (feesstatus == 0) {
-                    consulta = "SELECT count(*) FROM amortizaciones WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar();
-                }
+            if (feesstatus <= 2) {
+                if (identificador == 1) {
 
-            } else if (identificador == 2) {
-                consulta = "SELECT count(*) FROM auxiliares_d WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar() + "AND cargoabono=1";
+                    if (feesstatus == 1) {
+                        consulta = "SELECT count(*) FROM amortizaciones WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar() + " AND todopag=true";
+                    } else if (feesstatus == 2) {
+                        consulta = "SELECT count(*) FROM amortizaciones WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar() + " AND todopag=false";
+                    } else if (feesstatus == 0) {
+                        consulta = "SELECT count(*) FROM amortizaciones WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar();
+                    }
+
+                } else if (identificador == 2) {
+                    consulta = "SELECT count(*) FROM auxiliares_d WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + "AND idauxiliar=" + opa.getIdauxiliar() + "AND cargoabono=1";
+                }
+                Query query = em.createNativeQuery(consulta);
+                cont = Integer.parseInt(String.valueOf(query.getSingleResult()));
+            } else {
+                cont = 0;
             }
-            Query query = em.createNativeQuery(consulta);
-            cont = Integer.parseInt(String.valueOf(query.getSingleResult()));
+
             System.out.println("cont:" + cont);
         } catch (Exception e) {
-            em.close();
             System.out.println("Error al obtener contador general:" + e.getMessage());
-        }finally{
-            em.close();
+            return 0;
         }
         return cont;
     }
@@ -664,12 +677,19 @@ public abstract class FacadeLoan<T> {
         return cadenaStr;
     }
 
-    /**
-     * *********************************Cerrando conexiones *
-     * ***********************************
-     */
-    public void cerrar() {
-        emf.close();
+    public boolean actividad_horario() {
+        EntityManager em = AbstractFacade.conexion();
+        boolean bandera_ = false;
+        try {
+            if (util2.actividad(em)) {
+                bandera_ = true;
+            }
+        } catch (Exception e) {
+            System.out.println("Error al verificar el horario de actividad");
+
+        }
+
+        return bandera_;
     }
 
 }

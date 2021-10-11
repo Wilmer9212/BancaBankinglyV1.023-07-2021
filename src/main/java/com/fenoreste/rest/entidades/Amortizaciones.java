@@ -20,7 +20,7 @@ import javax.persistence.TemporalType;
  *
  * @author Elliot
  */
-@Cacheable(false)
+
 @Entity
 @Table(name = "amortizaciones")
 public class Amortizaciones implements Serializable {

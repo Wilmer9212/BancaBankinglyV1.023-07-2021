@@ -12,7 +12,7 @@ import javax.persistence.Table;
  *
  * @author root
  */
-@Cacheable(false)
+
 @Entity
 @Table(name = "colonias")
 public class Colonias implements Serializable {

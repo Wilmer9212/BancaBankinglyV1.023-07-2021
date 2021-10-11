@@ -55,19 +55,14 @@ public class TimerBeepClock implements Runnable {
         SimpleDateFormat dateFormatLocal = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         String fechaActual = dateFormatLocal.format(new Date());
         Timestamp timestamp = Timestamp.valueOf(fechaActual);
-        EntityManagerFactory emf=AbstractFacade.conexion();
-        EntityManager em=emf.createEntityManager();
+        //EntityManagerFactory emf=AbstractFacade.conexion();
+        EntityManager em=AbstractFacade.conexion();//emf.createEntityManager();
         try {
             em.getTransaction().begin();
             em.createNativeQuery("UPDATE origenes SET fechatrabajo =:fecha").setParameter("fecha",timestamp).executeUpdate();
             em.getTransaction().commit();
         } catch (Exception e) {
-            emf.close();
-            em.close();
             System.out.println("Error al actualizar hora en servidor:"+e.getMessage());
-        }finally{
-            emf.close();
-            em.close();
         }
     }
 

@@ -14,7 +14,7 @@ import javax.persistence.Embeddable;
  *
  * @author wilmer
  */
-@Cacheable(false)
+
 @Embeddable
 public class SaiSeguroHipotecarioPK implements Serializable {
 

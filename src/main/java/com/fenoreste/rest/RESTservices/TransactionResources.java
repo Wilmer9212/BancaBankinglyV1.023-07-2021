@@ -11,7 +11,6 @@ import com.fenoreste.rest.ResponseDTO.DocumentIdTransaccionesDTO;
 import com.fenoreste.rest.ResponseDTO.TransactionToOwnAccountsDTO;
 import com.fenoreste.rest.Util.Authorization;
 import com.fenoreste.rest.dao.TransactionDAO;
-import com.fenoreste.rest.service.MetodosTransferenciasService;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import org.json.JSONObject;
 public class TransactionResources {
 
     Authorization auth = new Authorization();
-    MetodosTransferenciasService metodosTransferencias = new MetodosTransferenciasService();
     BackendOperationResultDTO backendOperationResult = new BackendOperationResultDTO();
     //BasePath SPEI
     String basePath = "";
@@ -146,9 +144,16 @@ public class TransactionResources {
         /*======================================================================
                 Si el request que nos llego es el correcto procedemos
           ======================================================================*/
-        TransactionDAO dao = new TransactionDAO();
-
+        TransactionDAO dao = new TransactionDAO();          
+        if(!dao.actividad_horario()){
+            JsonObject obje=new JsonObject();
+            obje.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            backendOperationResult.setBackendMessage("VVERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
+            dao.cerrar();
+            return Response.status(Response.Status.BAD_GATEWAY).entity(backendOperationResult).build();
+        }
         try {
+            System.out.println("Accediendo a trasnferencias con subTransactionType="+dto.getSubTransactionTypeId()+",TransactionId:"+dto.getTransactionTypeId());
             //metodosTransferencias.comprobar(dto.getCreditProductBankIdentifier(),dto.getAmount(), dto.getClientBankIdentifier());
             //validamos el estatus de la cuenta origen(Usuario Activo,Cuenta Activa,Saldo>MontoTransaferencia y que el opa realmente pertenece al socio,que producto no sea un prestamo)
             //String mensajeOrigen=metodosTransferencias.comprobarCuentaOrigen(dto.getDebitProductBankIdentifier(),dto.getAmount(), dto.getClientBankIdentifier());
@@ -159,7 +164,8 @@ public class TransactionResources {
                 //Si la cuenta origen a sido validada
                 //validamos la cuenta destino como es una transferencia entre mis cuentas valida(cuenta al mismo ogs que el destino,que este activa y que no sea un prestamo)
              */
-
+            
+            
             //Si subtransactionType es 1 y transactionType es 1: El tipo de transaccion es es entre mis cuentas
             if (dto.getSubTransactionTypeId() == 1 && dto.getTransactionTypeId() == 1) {
                 backendOperationResult = dao.transferencias(dto, 1,null);
@@ -177,17 +183,16 @@ public class TransactionResources {
                 backendOperationResult = dao.transferencias(dto, 4,null);
             }
             //Si es una trasnferencia SPEI
-            if (dto.getSubTransactionTypeId() == 3 && dto.getTransactionTypeId() == 188128) {
+            if (dto.getSubTransactionTypeId() == 3 && dto.getTransactionTypeId() == 1) {
                 //Consumimos mis servicios de SPEI que tengo en otro proyecto(CSN0)
-                RequestDataOrdenPagoDTO ordenReque=new RequestDataOrdenPagoDTO();
-                
+                RequestDataOrdenPagoDTO ordenReque=new RequestDataOrdenPagoDTO();                
                 ordenReque.setClienteClabe(dto.getDebitProductBankIdentifier());//Opa origen como cuenta clabe en el metodo spei se busca la clave
                 ordenReque.setConceptoPago(dto.getDescription());
                 ordenReque.setCuentaBeneficiario(dto.getCreditProductBankIdentifier());//La clabe del beneficiario
                 ordenReque.setInstitucionContraparte(dto.getDestinationBank());
                 ordenReque.setMonto(dto.getAmount());
                 ordenReque.setNombreBeneficiario(dto.getDestinationName());
-                ordenReque.setRfcCurpBeneficiario(dto.getCreditProductBankIdentifier());
+                ordenReque.setRfcCurpBeneficiario(dto.getDestinationDocumentId().getDocumentNumber());
                 ordenReque.setOrdernante(dto.getClientBankIdentifier());   
                 
                 backendOperationResult=dao.transferencias(dto,5, ordenReque);

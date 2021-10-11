@@ -7,7 +7,6 @@ package com.fenoreste.rest.entidades;
 
 import java.io.Serializable;
 import java.util.Date;
-import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -19,7 +18,7 @@ import javax.persistence.TemporalType;
  *
  * @author wilmer
  */
-@Cacheable(false)
+
 @Entity
 @Table(name = "origenes")
 public class Origenes implements Serializable {

@@ -6,7 +6,6 @@
 package com.fenoreste.rest.entidades;
 
 import java.io.Serializable;
-import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -17,7 +16,7 @@ import javax.persistence.Table;
  *
  * @author wilmer
  */
-@Cacheable(false)
+
 @Entity
 @Table(name = "estados")
 public class Estados implements Serializable {

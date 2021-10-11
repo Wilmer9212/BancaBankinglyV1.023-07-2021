@@ -1,5 +1,6 @@
 package com.fenoreste.rest.dao;
 
+import com.fenoreste.rest.Util.UtilidadesGenerales;
 import com.fenoreste.rest.DTO.OgsDTO;
 import com.fenoreste.rest.DTO.OpaDTO;
 import com.fenoreste.rest.DTO.TablasDTO;
@@ -26,7 +27,6 @@ import com.syc.ws.endpoint.siscoop.BalanceQueryResponseDto;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -46,23 +46,23 @@ import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import javax.xml.namespace.QName;
 import wssyctdd.SiscoopTDD;
 
 public abstract class FacadeProductos<T> {
 
-    private static EntityManagerFactory emf;
     private final Date hoy = new Date();
 
+    UtilidadesGenerales util2 = new UtilidadesGenerales();
+
     public FacadeProductos(Class<T> entityClass) {
-        emf = AbstractFacade.conexion();
     }
-    Utilidades util=new Utilidades();
+    Utilidades util = new Utilidades();
+
     public List<ProductsDTO> getProductos(String clientBankIdentifiers, Integer productTypes) {
         List<ProductsDTO> ListagetP = new ArrayList<ProductsDTO>();
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         String productTypeId = "", descripcion = "";
         try {
             String consulta = "";
@@ -123,23 +123,20 @@ public abstract class FacadeProductos<T> {
         } catch (Exception e) {
             e.getStackTrace();
             System.out.println("Error Producido:" + e.getMessage());
-        } finally {
-            em.clear();
-            em.close();
-        }
+        } 
         return null;
     }
 
     public List<ProductsConsolidatePositionDTO> ProductsConsolidatePosition(String clientBankIdentifier, List<String> productsBank) {
-        EntityManager em = emf.createEntityManager();
-        List<ProductsConsolidatePositionDTO> ListaReturn = new ArrayList<ProductsConsolidatePositionDTO>();
-        OgsDTO ogs=util.ogs(clientBankIdentifier);
+        EntityManager em = AbstractFacade.conexion();
+        List<ProductsConsolidatePositionDTO> ListaReturn = new ArrayList<>();
+        OgsDTO ogs = util.ogs(clientBankIdentifier);
         try {
             for (int ii = 0; ii < productsBank.size(); ii++) {
-                OpaDTO opa=util.opa(productsBank.get(ii));
+                OpaDTO opa = util.opa(productsBank.get(ii));
                 String consulta = "SELECT * FROM auxiliares "
-                        + " WHERE idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()
-                        + " AND  idorigen="+ogs.getIdorigen()+"AND idgrupo="+ogs.getIdgrupo()+" AND idsocio="+ogs.getIdsocio()+" AND estatus=2";
+                        + " WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar()
+                        + " AND  idorigen=" + ogs.getIdorigen() + "AND idgrupo=" + ogs.getIdgrupo() + " AND idsocio=" + ogs.getIdsocio() + " AND estatus=2";
                 System.out.println("consulta:" + consulta);
 
                 Query query = em.createNativeQuery(consulta, Auxiliares.class);
@@ -152,18 +149,19 @@ public abstract class FacadeProductos<T> {
                 for (int i = 0; i < listaA.size(); i++) {
                     Auxiliares a = listaA.get(i);
                     saldo = Double.parseDouble(a.getSaldo().toString());
-                    if (caja().contains("SANNICOLAS") && a.getAuxiliaresPK().getIdproducto() == 133) {
+                    Tablas tablaTDD = util2.busquedaTabla(em, "bankingly_banca_movil", "producto_tdd");
+                    if (util2.obtenerOrigen(em).contains("SANNICOLAS") && a.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaTDD.getDato2())) {
                         WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
                         WsSiscoopFoliosTarjetas1 tarjeta = em.find(WsSiscoopFoliosTarjetas1.class, foliosPK);
                         try {
-                            TablasDTO tablaDTO = new TarjetaDeDebito().productoTddwebservice(em);
+                            Tablas tablaDTO = new TarjetaDeDebito().productoTddwebservice(em);
                             if (Integer.parseInt(tablaDTO.getDato2()) == a.getAuxiliaresPK().getIdproducto()) {
                                 saldo = 0.0;
-                                BalanceQueryResponseDto saldoWS = new TarjetaDeDebito().saldoTDD(foliosPK,em);
+                                BalanceQueryResponseDto saldoWS = new TarjetaDeDebito().saldoTDD(foliosPK, em);
                                 if (saldoWS.getCode() == 1) {
                                     saldo = saldoWS.getAvailableAmount();
                                     SaldoTddPK saldoTddPK = new SaldoTddPK(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
-                                    new TarjetaDeDebito().actualizarSaldoTDD(saldoTddPK, saldo,em);
+                                    new TarjetaDeDebito().actualizarSaldoTDD(saldoTddPK, saldo, em);
                                 }
                             }
                         } catch (Exception e) {
@@ -263,25 +261,23 @@ public abstract class FacadeProductos<T> {
             System.out.println("Lista:" + ListaReturn);
 
         } catch (Exception e) {
-            em.close();
+            
             System.out.println("Error produucido:" + e.getMessage());
-        } finally {
-            em.close();
-        }
+        } 
         return ListaReturn;
 
     }
 
     public List<ProductBankStatementDTO> statements(String cliente, String productBankIdentifier, int productType) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         List<ProductBankStatementDTO> listaEstadosDeCuenta = new ArrayList<>();
-        OpaDTO opa=util.opa(productBankIdentifier);
-        OgsDTO ogs=util.ogs(cliente);
+        OpaDTO opa = util.opa(productBankIdentifier);
+        OgsDTO ogs = util.ogs(cliente);
         try {
             boolean ba = false;
             try {
-                String BusquedaProducto = "SELECT * FROM auxiliares a WHERE idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()
-                        + " AND idorigen="+ogs.getIdorigen()+" AND idgrupo="+ogs.getIdgrupo()+" AND idsocio="+ogs.getIdsocio() +" AND estatus=2";
+                String BusquedaProducto = "SELECT * FROM auxiliares a WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar()
+                        + " AND idorigen=" + ogs.getIdorigen() + " AND idgrupo=" + ogs.getIdgrupo() + " AND idsocio=" + ogs.getIdsocio() + " AND estatus=2";
                 System.out.println("Consulta:" + BusquedaProducto);
                 Query queryB = em.createNativeQuery(BusquedaProducto, Auxiliares.class);
                 Auxiliares a = (Auxiliares) queryB.getSingleResult();
@@ -300,8 +296,7 @@ public abstract class FacadeProductos<T> {
 
                 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 //Date date = Date.from(local.atStartOfDay(defaultZoneId).toInstant());
-                
-                
+
                 String fi = "";
                 String ff = "";
                 LocalDateTime localDate = LocalDateTime.parse(fechaServidorDB + " 00:00:00", dtf);
@@ -313,7 +308,6 @@ public abstract class FacadeProductos<T> {
                     ProductBankStatementDTO estadoCuenta = new ProductBankStatementDTO();
                     ff = String.valueOf(localDate.plusMonths(-i));
                     fi = String.valueOf(localDate.plusMonths(-i - 1));
-                   
 
                     //System.out.println("LocaDate:"+localDate);
                     System.out.println("yyyy/MM/dd HH:mm:ss-> " + dtf.format(LocalDateTime.now()));
@@ -327,7 +321,7 @@ public abstract class FacadeProductos<T> {
                             estadoCuenta.setProductBankIdentifier(productBankIdentifier);
                             estadoCuenta.setProductBankStatementId(file.getName().replace(".txt", "").replace("T", "").replace(":", "").replace("-", ""));
                             estadoCuenta.setProductType(productType);
-                            estadoCuenta.setProductBankStatementDate(ff.substring(0,10));
+                            estadoCuenta.setProductBankStatementDate(ff.substring(0, 10));
                             listaEstadosDeCuenta.add(estadoCuenta);
                         }
                     }
@@ -339,11 +333,9 @@ public abstract class FacadeProductos<T> {
 
             }
         } catch (Exception ex) {
-            em.close();
+           
             return listaEstadosDeCuenta;
-        } finally {
-            em.close();
-        }
+        } 
         System.out.println("ListaECuenta:" + listaEstadosDeCuenta);
         return listaEstadosDeCuenta;
     }
@@ -381,7 +373,7 @@ public abstract class FacadeProductos<T> {
         String hora = dateFormatLocal.format(new Date());
         String nombre_txt = NProducto + "-" + FInicio.substring(0, 10).replace("-", "") + "" + FFinal.substring(0, 10).replace("-", "") + hora.replace(":", "") + String.valueOf(numeroAleatorio) + ".txt";
         System.out.println("nombreTxt:" + nombre_txt);
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = AbstractFacade.conexion();
         File file = null;
         try {
             String o = opa.substring(0, 6);
@@ -406,10 +398,8 @@ public abstract class FacadeProductos<T> {
             bw.close();
         } catch (Exception e) {
             System.out.println("Error en crear estado de cuenta a TXT:" + e.getMessage());
-            em.close();
-        } finally {
-            em.close();
-        }
+          
+        } 
         return file;
     }
 
@@ -497,112 +487,19 @@ public abstract class FacadeProductos<T> {
         return date;
     }
 
-    /*========================================================================================================================*/
-
- /*========================================================================
-               Servicios S&C
-    ========++++++=++++++++++++++++++++++++++++++++++++++++++++++++==+++++++=*/
-    public BalanceQueryResponseDto balanceQuery(String pan) {
-        EntityManager em = emf.createEntityManager();
-        double saldo;
+    public boolean actividad_horario() {
+        EntityManager em = AbstractFacade.conexion();
+        boolean bandera_ = false;
         try {
-            TablasPK pk = new TablasPK("siscoop_banca_movil", "wsdl_parametros");
-            Tablas tb = em.find(Tablas.class,
-                    pk);
-            if (authSyC(tb.getDato1(), tb.getDato2())) {
-                SiscoopTDD tdd = new SiscoopTDD(tb.getDato1(), tb.getDato2());
-                BalanceQueryResponseDto dto = tdd.getSiscoop().getBalanceQuery(pan);
-                return dto;
+            if (util2.actividad(em)) {
+                bandera_ = true;
             }
         } catch (Exception e) {
-            em.clear();
-            em.close();
-            System.out.println("Error al consultar saldo de TDD:" + e.getMessage());
+            System.out.println("Error al verificar el horario de actividad");
+         
         }
-        em.clear();
-        em.close();
-        return null;
-    }
 
-    public boolean authSyC(String user, String pass) {
-        System.out.println("llego a auth");
-        System.out.println("user:" + user + ",pass:" + pass);
-        boolean bandera = true;
-        try {
-            System.out.println("entro a try");
-            SiscoopTDD syc = new SiscoopTDD(user, pass);
-            System.out.println("salio");
-            bandera = true;
-        } catch (Exception e) {
-            System.out.println("Error al autenticar:" + e.getMessage());
-        }
-        System.out.println("fin");
-        return bandera;
-    }
-
-    // REALIZA UN PING A LA URL DEL WSDL
-    private boolean pingURL(URL url, String tiempo) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(Integer.parseInt(tiempo));
-            connection.setReadTimeout(Integer.parseInt(tiempo));
-            int codigo = connection.getResponseCode();
-            if (codigo == 200) {
-                return true;
-            }
-        } catch (IOException ex) {
-            System.out.println("Error al conectarse a SYC: " + ex.getMessage());
-        }
-        return false;
-    }
-
-    public boolean pingging() throws MalformedURLException {
-        boolean bandera = false;
-
-        EntityManager em = emf.createEntityManager();
-        TablasPK tablasPK = new TablasPK("siscoop_banca_movil", "wsdl");
-        Tablas tb = em.find(Tablas.class,
-                tablasPK);
-        System.out.println("tablas encontrdas:" + tb);
-        String wsdlLocation = "http://" + tb.getDato1() + ":" + tb.getDato3() + "/syc/webservice/" + tb.getDato2() + "?wsdl";
-        System.out.println("wsdlLocation:" + wsdlLocation);
-        //"http://200.15.1.143:8080/syc/webservice/siscoopAlternativeService/?wsld"
-        QName QNAME = new QName("http://impl.siscoop.endpoint.ws.syc.com/", "SiscoopAlternativeEndpointImplService");
-        URL url = new URL(wsdlLocation);
-        System.out.println("ur:" + url);
-        System.out.println("tbdato4:" + tb.getDato4());
-        if (pingURL(url, tb.getDato4())) {
-            System.out.println("si");
-            bandera = true;
-        } else {
-            System.out.println("no");
-            bandera = false;
-        }
-        return false;
-    }
-
-    public String caja() {
-        EntityManager em = emf.createEntityManager();
-        String nombreOrigen = "";
-        try {
-            String consulta = "SELECT replace(nombre,' ','') FROM origenes WHERE matriz=0";
-            System.out.println("ConsultaOrigen:" + consulta);
-            Query query = em.createNativeQuery(consulta);
-            nombreOrigen = String.valueOf(query.getSingleResult());
-        } catch (Exception e) {
-            em.clear();
-            em.close();
-            System.out.println("Error al crear origen trabajando:" + e.getMessage());
-            return "";
-        } finally {
-            em.clear();
-            em.close();
-        }
-        return nombreOrigen.replace(" ", "").toUpperCase();
-    }
-
-    public void cerrar() {
-        emf.close();
+        return bandera_;
     }
 
 }

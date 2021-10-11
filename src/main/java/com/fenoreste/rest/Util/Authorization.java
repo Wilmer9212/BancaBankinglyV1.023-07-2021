@@ -9,7 +9,6 @@ import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;
 import java.io.IOException;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import sun.misc.BASE64Decoder;
 
 /**
@@ -49,7 +48,7 @@ public class Authorization {
     private Tablas getUser() {
         TablasPK tbpk = new TablasPK("bankingly", "credenciales");
         boolean bandera = false;
-        EntityManager em = AbstractFacade_1.conexion();
+        EntityManager em = AbstractFacade.conexion();
         Tablas tb = new Tablas();
         try {
             tb = em.find(Tablas.class, tbpk);

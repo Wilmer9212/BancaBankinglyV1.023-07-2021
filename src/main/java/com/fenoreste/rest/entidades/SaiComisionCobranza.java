@@ -16,7 +16,7 @@ import javax.persistence.Id;
  *
  * @author wilmer
  */
-@Cacheable(false)
+
 @Entity
 public class SaiComisionCobranza implements Serializable {
 

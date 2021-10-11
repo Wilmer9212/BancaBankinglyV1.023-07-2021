@@ -61,11 +61,9 @@ public class Security {
     }
   
     private boolean getUser(String username,String password){
-        boolean bandera=false;
-        
-        EntityManagerFactory emf=AbstractFacade.conexion();
+        boolean bandera=false;        
+        EntityManager em = AbstractFacade.conexion();
         try {            
-        EntityManager em=emf.createEntityManager();
         String consulta="SELECT status FROM user_rest WHERE username='"+username+"' AND password='"+password+"'";
         Query query=em.createNativeQuery(consulta);
         boolean st=(boolean) query.getSingleResult();
@@ -75,7 +73,7 @@ public class Security {
         } catch (Exception e) {
             System.out.println("Error en status");
         }
-        emf.close();
+        //emf.close();
         return bandera;
         
     }
