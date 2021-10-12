@@ -476,11 +476,16 @@ public abstract class FacadeTransaction<T> {
                     Query termina_transaccion = em.createNativeQuery(consulta_termina_transaccion);
                     int registros_limpiados = Integer.parseInt(String.valueOf(termina_transaccion.getSingleResult()));
                     System.out.println("Registros Limpiados con exito:" + registros_limpiados);
-                    if(util2.obtenerOrigen(em).toUpperCase().replace(" ","").contains("SANNICOLAS")){
-                        if(transaction.getSubtransactiontypeid()==1 && transaction.getTransactionid()==1){
-                            new PreparaSMS().enviaSMS_CSN(em,String.valueOf(transaction.getAmount()),1,transaction.getDebitproductbankidentifier(),transaction.getCreditproductbankidentifier(),transaction.getClientbankidentifier());
+                    if (util2.obtenerOrigen(em).toUpperCase().replace(" ", "").contains("SANNICOLAS")) {
+                        //Verfico si esta activo el permitir enviar sms
+                        Tablas tb_sms_activo = util2.busquedaTabla(em, "bankingly_banca_movil", "smsactivo");
+                        if (identificadorTransferencia == 1) {
+                            if (Integer.parseInt(tb_sms_activo.getDato1()) == 1) {
+                                System.out.println("entro a enviar smsm");
+                                new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 1, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                            }
                         }
-                        
+
                     }
 
                     //Guardo en una tabla el hisotiral de la operacion realizada
@@ -541,7 +546,6 @@ public abstract class FacadeTransaction<T> {
 
         } catch (Exception e) {
             System.out.println("Error al crear voucher:" + e.getMessage());
-
             return "";
         }
 
@@ -579,7 +583,7 @@ public abstract class FacadeTransaction<T> {
                 Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
                 if (util2.obtenerOrigen(em).contains("SANNICOLAS")) {
                     Tablas tablaProductoTDD = new TarjetaDeDebito().productoTddwebservice(em);
-                    if (ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato1())) {
+                    if (ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato2())) {
                         //Si es la TDD               
                         WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(ctaOrigen.getAuxiliaresPK().getIdorigenp(), ctaOrigen.getAuxiliaresPK().getIdproducto(), ctaOrigen.getAuxiliaresPK().getIdauxiliar());
                         WsSiscoopFoliosTarjetas1 tarjetas = new TarjetaDeDebito().buscaTarjetaTDD(foliosPK.getIdorigenp(), foliosPK.getIdproducto(), foliosPK.getIdauxiliar(), em);
@@ -758,22 +762,22 @@ public abstract class FacadeTransaction<T> {
             if (bOrigen) {
                 Double saldo = Double.parseDouble(ctaOrigen.getSaldo().toString());
                 if (util2.obtenerOrigen(em).contains("SANNICOLAS")) {
-                     Tablas tablaProductoTDD = new TarjetaDeDebito().productoTddwebservice(em);
-                    if (ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato1())) {
-                    
-                    WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(ctaOrigen.getAuxiliaresPK().getIdorigenp(), ctaOrigen.getAuxiliaresPK().getIdproducto(), ctaOrigen.getAuxiliaresPK().getIdauxiliar());
-                    WsSiscoopFoliosTarjetas1 tarjetas = new TarjetaDeDebito().buscaTarjetaTDD(foliosPK.getIdorigenp(), foliosPK.getIdproducto(), foliosPK.getIdauxiliar(), em);
-                    try {
-                        System.out.println("consultando saldo para idtarjeta:" + tarjetas.getIdtarjeta());
-                        BalanceQueryResponseDto saldoTDD = new TarjetaDeDebito().saldoTDD(tarjetas.getWsSiscoopFoliosTarjetasPK(), em);
-                        message = "TDD";
-                        saldo = saldoTDD.getAvailableAmount();
-                        //saldo = 200.0;
-                    } catch (Exception e) {
-                        System.out.println("Error al buscar saldo de TDD:" + ctaOrigen.getAuxiliaresPK().getIdproducto());
-                        return message = "ERROR AL CONSUMIR WS TDD Y OBTENER SALDO DEL PRODUCTO";
+                    Tablas tablaProductoTDD = new TarjetaDeDebito().productoTddwebservice(em);
+                    if (ctaOrigen.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaProductoTDD.getDato2())) {
 
-                    }
+                        WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(ctaOrigen.getAuxiliaresPK().getIdorigenp(), ctaOrigen.getAuxiliaresPK().getIdproducto(), ctaOrigen.getAuxiliaresPK().getIdauxiliar());
+                        WsSiscoopFoliosTarjetas1 tarjetas = new TarjetaDeDebito().buscaTarjetaTDD(foliosPK.getIdorigenp(), foliosPK.getIdproducto(), foliosPK.getIdauxiliar(), em);
+                        try {
+                            System.out.println("consultando saldo para idtarjeta:" + tarjetas.getIdtarjeta());
+                            BalanceQueryResponseDto saldoTDD = new TarjetaDeDebito().saldoTDD(tarjetas.getWsSiscoopFoliosTarjetasPK(), em);
+                            message = "TDD";
+                            saldo = saldoTDD.getAvailableAmount();
+                            //saldo = 200.0;
+                        } catch (Exception e) {
+                            System.out.println("Error al buscar saldo de TDD:" + ctaOrigen.getAuxiliaresPK().getIdproducto());
+                            return message = "ERROR AL CONSUMIR WS TDD Y OBTENER SALDO DEL PRODUCTO";
+
+                        }
                     }
                 }
 

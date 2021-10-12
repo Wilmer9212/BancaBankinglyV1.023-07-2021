@@ -47,7 +47,9 @@ public class EnviarSMS {
             mensaje = mensaje.replace(" ", "%20");
             mensaje = mensaje.trim();
             if (numero.length() == 10) {
+                System.out.println("le numero es correcto");
                 if (mensaje.length() <= 160) {
+                    System.out.println("el mensaje tambine");
                     //WsConnExternos wsConnExternos = new WsConnExternos();//esta es la clase en donde se genera una conexion y se lee lo que retorna
                     host = host.replace("_mensaje", mensaje);
                     host = host.replace("_numero", numero);
@@ -69,6 +71,7 @@ public class EnviarSMS {
         try {
             // Creo un objeto url con la cadena
             URL url = new URL(urlString);
+            System.out.println("URL:"+url);
             // Creo un objeto HttpURLConnection para conectarme
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // El tiempo de espera para que se conecte
@@ -78,6 +81,8 @@ public class EnviarSMS {
             //Si la conexion fue exitosa
             if (con.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 System.out.println("No se envio el mensaje, error en conexion. ");
+            }else{
+                System.out.println("Enviado");
             }
         } catch (Exception e) {
             return "Exception en WsConnExternos.simpleConeccionURL " + e.getMessage();

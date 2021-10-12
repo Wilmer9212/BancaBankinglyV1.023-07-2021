@@ -50,6 +50,7 @@ public class UtilidadesGenerales {
             System.out.println("Error al buscar tabla:" + e.getMessage());            
             return tb;
         } 
+        System.out.println("la Tabla encontrada es="+tb);
         return tb;
     }
     

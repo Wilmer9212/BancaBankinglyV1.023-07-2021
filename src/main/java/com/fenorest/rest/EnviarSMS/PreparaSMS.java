@@ -20,18 +20,20 @@ import javax.persistence.EntityManager;
  * @author wilmer
  */
 public class PreparaSMS {
-    
-    
-     UtilidadesGenerales util=new UtilidadesGenerales();
-     Utilidades util2=new Utilidades();
-     EnviarSMS sendSMS=new EnviarSMS();
-     
+
+    UtilidadesGenerales util = new UtilidadesGenerales();
+    Utilidades util2 = new Utilidades();
+    EnviarSMS sendSMS = new EnviarSMS();
+
     // ENVIA EL SMS METODO PRA CSN
-    public void enviaSMS_CSN(EntityManager em,String montoAbono, int identificadorOperacion,String debitAccount,String creditAccount,String numeroSocio) {
-        //consulto en tablas si existe la url del script de san nicolas para envio de mensajes
+    public void enviaSMS_CSN(EntityManager em, String montoAbono, int identificadorOperacion, String debitAccount, String creditAccount, String numeroSocio) {
+        System.out.println("preparando el sms");
+//consulto en tablas si existe la url del script de san nicolas para envio de mensajes
+        try {
+            
         Tablas tablasUrlSMS = util.busquedaTabla(em, "bankingly_banca_movil", "liga_envio_mensajes");
-        EnviarSMS enviaSMS=new EnviarSMS();
             if (tablasUrlSMS.getDato2().length() > 0) {
+                System.out.println("se encontro la url para envio de sms");
                 //Obtengo el celular del socio 
                 OgsDTO ogs=util2.ogs(numeroSocio);
                 PersonasPK personaPK=new PersonasPK(ogs.getIdorigen(),ogs.getIdgrupo(),ogs.getIdsocio());
@@ -39,34 +41,41 @@ public class PreparaSMS {
                 Tablas tablaContenidoSMS=null;
                 //Se identifica para transferencias a cuentas propias
                 if(identificadorOperacion==1){
-                 tablaContenidoSMS=util.busquedaTabla(em,"bankingly_banca_movil","'sms_retiro_cuenta_propia");
+                    System.out.println("es cuenta propia");
+                 tablaContenidoSMS=util.busquedaTabla(em,"bankingly_banca_movil","sms_retiro_cuenta_propia");
+                    System.out.println("tabla contenido sms:;;;;;"+tablaContenidoSMS);
                  String contenidoSMS=contenidoSMS(tablaContenidoSMS.getDato2(),montoAbono,debitAccount,creditAccount,"","");
                  System.out.println("El contenido de tu mensaje es:"+contenidoSMS);
                  sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(),contenidoSMS);                
                 //Transferecnaia a terceros dentro de la entidad
                 }else if(identificadorOperacion==2){
-                    
+                    System.out.println("Tercero");
                 //Pago de prestamos
                 }else if(identificadorOperacion==3){
-                    
+                    System.out.println("Pago prestamo");
                 }
                 
             }
+        } catch (Exception e) {
+            System.out.println("Error en sms:"+e.getMessage());
         }
-    
-     // RELLENA EL CONTENIDO DEL SMS
-    private String contenidoSMS(String contenidoSMS, String monto,String productoOrigen,String productoDestino,String authOrigen,String authDestino) {
-        Date hoy=new Date();
-        SimpleDateFormat sdf=new SimpleDateFormat("dd/MM/yyy HH:MM:ss");
-        String fecha=sdf.format(hoy);        
+
+    }
+
+    // RELLENA EL CONTENIDO DEL SMS
+    private String contenidoSMS(String contenidoSMS, String monto, String productoOrigen, String productoDestino, String authOrigen, String authDestino) {
+
+        Date hoy = new Date();
+        System.out.println("Formando contenido fecha:" + hoy);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyy HH:MM:ss");
+        String fecha = sdf.format(hoy);
+        System.out.println("Fecha String:" + fecha);
         return contenidoSMS.replace("@monto@", monto)
-                .replace("@fechayHora@",fecha)
+                .replace("@fechayHora@", fecha)
                 .replace("@productoOrigen@", productoOrigen)
                 .replace("@productoDestino@", productoDestino)
                 .replace("@autorizacionOrigen@", authOrigen)
                 .replace("@autorizacionDestino@", authDestino);
     }
-            
-            
-       
+
 }
