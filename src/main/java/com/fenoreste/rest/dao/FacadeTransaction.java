@@ -479,13 +479,29 @@ public abstract class FacadeTransaction<T> {
                     if (util2.obtenerOrigen(em).toUpperCase().replace(" ", "").contains("SANNICOLAS")) {
                         //Verfico si esta activo el permitir enviar sms
                         Tablas tb_sms_activo = util2.busquedaTabla(em, "bankingly_banca_movil", "smsactivo");
-                        if (identificadorTransferencia == 1) {
-                            if (Integer.parseInt(tb_sms_activo.getDato1()) == 1) {
-                                System.out.println("entro a enviar smsm");
-                                new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 1, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                        if (Integer.parseInt(tb_sms_activo.getDato1()) == 1) {
+                            //Obtengo el minimo para enviar el SMS
+                            Tablas tb_minimo_sms = util2.busquedaTabla(em, "bakingly_banca_movil", "monto_minimo_sms");
+                            if (Double.parseDouble(tb_minimo_sms.getDato1()) >= transaction.getAmount()) {
+                                if (identificadorTransferencia == 1) {
+                                    System.out.println("entro a enviar sms a cuenta propia");
+                                    //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
+                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 1, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                } else if (identificadorTransferencia == 2) {
+                                    System.out.println("entro a enviar sms a cuenta de tercero");
+                                    //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
+                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 2, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                } else if (identificadorTransferencia == 3) {
+                                    System.out.println("entro a enviar sms abono propio");
+                                    //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
+                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 3, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                } else if (identificadorTransferencia == 4) {
+                                    System.out.println("entro a enviar sms abono tercero");
+                                    //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
+                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 4, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                }
                             }
                         }
-
                     }
 
                     //Guardo en una tabla el hisotiral de la operacion realizada

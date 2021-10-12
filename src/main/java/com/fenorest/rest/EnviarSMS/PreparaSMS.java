@@ -28,36 +28,55 @@ public class PreparaSMS {
     // ENVIA EL SMS METODO PRA CSN
     public void enviaSMS_CSN(EntityManager em, String montoAbono, int identificadorOperacion, String debitAccount, String creditAccount, String numeroSocio) {
         System.out.println("preparando el sms");
-//consulto en tablas si existe la url del script de san nicolas para envio de mensajes
+        //consulto en tablas si existe la url del script de san nicolas para envio de mensajes
         try {
-            
-        Tablas tablasUrlSMS = util.busquedaTabla(em, "bankingly_banca_movil", "liga_envio_mensajes");
+
+            Tablas tablasUrlSMS = util.busquedaTabla(em, "bankingly_banca_movil", "liga_envio_mensajes");
             if (tablasUrlSMS.getDato2().length() > 0) {
                 System.out.println("se encontro la url para envio de sms");
                 //Obtengo el celular del socio 
-                OgsDTO ogs=util2.ogs(numeroSocio);
-                PersonasPK personaPK=new PersonasPK(ogs.getIdorigen(),ogs.getIdgrupo(),ogs.getIdsocio());
-                Persona p=em.find(Persona.class, personaPK);
-                Tablas tablaContenidoSMS=null;
+                OgsDTO ogs = util2.ogs(numeroSocio);
+                PersonasPK personaPK = new PersonasPK(ogs.getIdorigen(), ogs.getIdgrupo(), ogs.getIdsocio());
+                Persona p = em.find(Persona.class, personaPK);
+                Tablas tablaContenidoSMS = null;
+                String contenidoSMS = "";
                 //Se identifica para transferencias a cuentas propias
-                if(identificadorOperacion==1){
-                    System.out.println("es cuenta propia");
-                 tablaContenidoSMS=util.busquedaTabla(em,"bankingly_banca_movil","sms_retiro_cuenta_propia");
-                    System.out.println("tabla contenido sms:;;;;;"+tablaContenidoSMS);
-                 String contenidoSMS=contenidoSMS(tablaContenidoSMS.getDato2(),montoAbono,debitAccount,creditAccount,"","");
-                 System.out.println("El contenido de tu mensaje es:"+contenidoSMS);
-                 sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(),contenidoSMS);                
-                //Transferecnaia a terceros dentro de la entidad
-                }else if(identificadorOperacion==2){
+                if (identificadorOperacion == 1) {
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_propia");
+                    System.out.println("tabla contenido sms:" + tablaContenidoSMS);
+                    contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
+                    System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
+                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    //Transferencia a terceros dentro de la entidad
+                } else if (identificadorOperacion == 2) {
                     System.out.println("Tercero");
-                //Pago de prestamos
-                }else if(identificadorOperacion==3){
-                    System.out.println("Pago prestamo");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
+                    System.out.println("tabla contenido sms:" + tablaContenidoSMS);
+                    contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
+                    System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
+                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    //Pago de prestamos
+                } else if (identificadorOperacion == 3) {
+                    System.out.println("Pago prestamo propio");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_abono_cuenta_propia");
+                    System.out.println("tabla contenido sms:" + tablaContenidoSMS);
+                    contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
+                    System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
+                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);                  
+                }else if (identificadorOperacion==4){
+                   System.out.println("Pago prestamo tercero");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_abono_cuenta_tercero");
+                    System.out.println("tabla contenido sms:" + tablaContenidoSMS);
+                    contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
+                    System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
+                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS); 
+                }else{
+                    
                 }
-                
+
             }
         } catch (Exception e) {
-            System.out.println("Error en sms:"+e.getMessage());
+            System.out.println("Error en sms:" + e.getMessage());
         }
 
     }

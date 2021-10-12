@@ -41,8 +41,6 @@ public class ApplicationConfig extends Application {
     
 
     private void addRestResourceClasses(Set<Class<?>> resources) {
-        resources.add(com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider.class);
-        resources.add(com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider.class);
         resources.add(com.fenoreste.rest.RESTservices.AccountsResources.class);
         resources.add(com.fenoreste.rest.RESTservices.CustomerResources.class);
         resources.add(com.fenoreste.rest.RESTservices.LoanResources.class);

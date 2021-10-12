@@ -14,6 +14,9 @@ import java.sql.Timestamp;
 import javax.persistence.Query;
 import wssyctdd.SiscoopTDD;
 
+
+
+
 /**
  *
  * @author Elliot
