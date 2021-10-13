@@ -508,9 +508,11 @@ public abstract class FacadeTransaction<T> {
                             }
                         }
                     }
+                    
+                   
 
                     //Guardo en una tabla el hisotiral de la operacion realizada
-                    transaction.setTransactionid(new BigDecimal(Integer.parseInt(procesaOrigen.getReferencia().trim())));
+                    transaction.setTransactionid(new BigDecimal(procesaOrigen.getReferencia().trim()));
                     em.getTransaction().begin();
                     em.persist(transaction);
                     em.getTransaction().commit();
