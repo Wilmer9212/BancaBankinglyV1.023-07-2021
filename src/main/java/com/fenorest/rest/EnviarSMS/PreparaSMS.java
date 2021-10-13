@@ -42,25 +42,25 @@ public class PreparaSMS {
             OpaDTO opa_destino = null;
 
             //Buscamos el movimiento que se hizo
-            String busqueda_aux_d_origen = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_origen.getIdorigenp() + " AND idproducto=" + opa_origen.getIdproducto() + " AND idauxiliar=" + opa_origen.getIdauxiliar() + " AND monto=" + montoAbono + " ORDER BY fecha ASC LIMIT 1";
+            String busqueda_aux_d_origen = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_origen.getIdorigenp() + " ORDER BY fecha DESC LIMIT 1";
             System.out.println("Busqueda del auxiliar:" + busqueda_aux_d_origen);
             Query query_aux_d_origen = em.createNativeQuery(busqueda_aux_d_origen, AuxiliaresD.class);
             AuxiliaresD ad_origen = (AuxiliaresD) query_aux_d_origen.getSingleResult();
             AuxiliaresD ad_destino = null;
-            
+
             //Buscamos el nombre del producto 
             Productos pr_origen = em.find(Productos.class, opa_origen.getIdproducto());
             Productos pr_destino = null;
-            String auth_destino="";
+            String auth_destino = "";
             if (identificadorOperacion != 5) {
                 opa_destino = util2.opa(creditAccount);
-                String busqueda_aux_d_destino = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_destino.getIdorigenp() + " AND idproducto=" + opa_destino.getIdproducto() + " AND idauxiliar=" + opa_destino.getIdauxiliar() + " AND monto=" + montoAbono + " ORDER BY fecha ASC LIMIT 1";
+                String busqueda_aux_d_destino = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_destino.getIdorigenp() + " AND idproducto=" + opa_destino.getIdproducto() + " AND idauxiliar=" + opa_destino.getIdauxiliar() + " ORDER BY fecha DESC LIMIT 1";
                 System.out.println("Busqueda del auxiliar:" + busqueda_aux_d_destino);
                 Query query_aux_d_destino = em.createNativeQuery(busqueda_aux_d_destino, AuxiliaresD.class);
                 ad_destino = (AuxiliaresD) query_aux_d_destino.getSingleResult();
                 pr_destino = em.find(Productos.class, opa_destino.getIdproducto());
                 auth_destino = ad_destino.getIdorigenc() + "" + ad_destino.getPeriodo() + "" + ad_destino.getIdtipo() + "" + ad_destino.getIdpoliza();
-                
+
             }
 
             if (tablasUrlSMS.getDato2().length() > 0) {
@@ -103,18 +103,14 @@ public class PreparaSMS {
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), pr_destino.getNombre(), auth_origen, auth_destino);
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
                     sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
-                } else {
-                    if (identificadorOperacion == 5) {
-                        System.out.println("Pago orden SPEI");
-                        tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
-                        System.out.println("tabla contenido sms:" + tablaContenidoSMS);
-                        contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), creditAccount, auth_origen, "");
-                        System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
-                        sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
-                    }
-
+                } else if (identificadorOperacion == 5) {
+                    System.out.println("Pago orden SPEI");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
+                    System.out.println("tabla contenido sms:" + tablaContenidoSMS);
+                    contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), creditAccount, auth_origen, "");
+                    System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
+                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
                 }
-
             }
         } catch (Exception e) {
             System.out.println("Error en sms:" + e.getMessage());
