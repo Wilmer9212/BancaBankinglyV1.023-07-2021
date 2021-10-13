@@ -1,6 +1,6 @@
 package com.fenoreste.rest.WsTDD;
 
-import com.fenoreste.rest.DTO.TablasDTO;
+
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.entidades.Tablas;
 import com.fenoreste.rest.entidades.TablasPK;

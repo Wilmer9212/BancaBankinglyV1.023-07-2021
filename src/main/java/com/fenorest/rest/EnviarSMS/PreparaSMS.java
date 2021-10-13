@@ -58,19 +58,26 @@ public class PreparaSMS {
                     //Pago de prestamos
                 } else if (identificadorOperacion == 3) {
                     System.out.println("Pago prestamo propio");
-                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_abono_cuenta_propia");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_propia");
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
                     sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);                  
                 }else if (identificadorOperacion==4){
                    System.out.println("Pago prestamo tercero");
-                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_abono_cuenta_tercero");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
                     sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS); 
-                }else{
+                }else{ if(identificadorOperacion == 5){
+                    System.out.println("Pago orden SPEI");
+                    tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
+                    System.out.println("tabla contenido sms:" + tablaContenidoSMS);
+                    contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, debitAccount, creditAccount, "", "");
+                    System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
+                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                }
                     
                 }
 

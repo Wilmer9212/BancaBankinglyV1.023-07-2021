@@ -499,6 +499,10 @@ public abstract class FacadeTransaction<T> {
                                     System.out.println("entro a enviar sms abono tercero");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
                                     new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 4, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                } else if (identificadorTransferencia == 5) {
+                                    System.out.println("entro a enviar sms SPEI salida");
+                                    //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
+                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 5, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
                                 }
                             }
                         }
