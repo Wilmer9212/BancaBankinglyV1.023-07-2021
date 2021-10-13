@@ -51,6 +51,7 @@ public class PreparaSMS {
             //Buscamos el nombre del producto 
             Productos pr_origen = em.find(Productos.class, opa_origen.getIdproducto());
             Productos pr_destino = null;
+            String auth_destino="";
             if (identificadorOperacion != 5) {
                 opa_destino = util2.opa(creditAccount);
                 String busqueda_aux_d_destino = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_destino.getIdorigenp() + " AND idproducto=" + opa_destino.getIdproducto() + " AND idauxiliar=" + opa_destino.getIdauxiliar() + " AND monto=" + montoAbono + " ORDER BY fecha ASC LIMIT 1";
@@ -58,6 +59,8 @@ public class PreparaSMS {
                 Query query_aux_d_destino = em.createNativeQuery(busqueda_aux_d_destino, AuxiliaresD.class);
                 ad_destino = (AuxiliaresD) query_aux_d_destino.getSingleResult();
                 pr_destino = em.find(Productos.class, opa_destino.getIdproducto());
+                auth_destino = ad_destino.getIdorigenc() + "" + ad_destino.getPeriodo() + "" + ad_destino.getIdtipo() + "" + ad_destino.getIdpoliza();
+                
             }
 
             if (tablasUrlSMS.getDato2().length() > 0) {
@@ -70,7 +73,6 @@ public class PreparaSMS {
                 String contenidoSMS = "";
 
                 String auth_origen = ad_origen.getIdorigenc() + "" + ad_origen.getPeriodo() + "" + ad_origen.getIdtipo() + "" + ad_origen.getIdpoliza();
-                String auth_destino = ad_destino.getIdorigenc() + "" + ad_destino.getPeriodo() + "" + ad_destino.getIdtipo() + "" + ad_destino.getIdpoliza();
                 //Se identifica para transferencias a cuentas propias
                 if (identificadorOperacion == 1) {
                     tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_propia");

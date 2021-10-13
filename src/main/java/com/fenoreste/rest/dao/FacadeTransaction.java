@@ -39,6 +39,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -164,7 +165,7 @@ public abstract class FacadeTransaction<T> {
                 Transferencias transaction = new Transferencias();
                 //Si la valicadion se realizo de manera corracta preparo una tabla ttabla historial
 
-                transaction.setTransactionid(transactionOWN.getTransactionId());
+                transaction.setTransactionid(new BigDecimal(transactionOWN.getTransactionId()));
                 transaction.setSubtransactiontypeid(transactionOWN.getSubTransactionTypeId());
                 transaction.setCurrencyid(transactionOWN.getCurrencyId());
                 transaction.setValuedate(transactionOWN.getValueDate());
@@ -481,8 +482,8 @@ public abstract class FacadeTransaction<T> {
                         Tablas tb_sms_activo = util2.busquedaTabla(em, "bankingly_banca_movil", "smsactivo");
                         if (Integer.parseInt(tb_sms_activo.getDato1()) == 1) {
                             //Obtengo el minimo para enviar el SMS
-                            Tablas tb_minimo_sms = util2.busquedaTabla(em, "bakingly_banca_movil", "monto_minimo_sms");
-                            if (Double.parseDouble(tb_minimo_sms.getDato1()) >= transaction.getAmount()) {
+                            Tablas tb_minimo_sms = util2.busquedaTabla(em, "bankingly_banca_movil", "monto_minimo_sms");
+                             if ( transaction.getAmount() >= Double.parseDouble(tb_minimo_sms.getDato1())) {
                                 if (identificadorTransferencia == 1) {
                                     System.out.println("entro a enviar sms a cuenta propia");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
@@ -509,6 +510,7 @@ public abstract class FacadeTransaction<T> {
                     }
 
                     //Guardo en una tabla el hisotiral de la operacion realizada
+                    transaction.setTransactionid(new BigDecimal(Integer.parseInt(procesaOrigen.getReferencia().trim())));
                     em.getTransaction().begin();
                     em.persist(transaction);
                     em.getTransaction().commit();
@@ -520,7 +522,7 @@ public abstract class FacadeTransaction<T> {
                     if (identificadorTransferencia == 5) {
                         backendResponse.setTransactionIdenty(String.valueOf(response.getId()));
                     } else {
-                        backendResponse.setTransactionIdenty(String.valueOf(transaction.getIdtransaction()));
+                        backendResponse.setTransactionIdenty(String.valueOf(transaction.getTransactionid()));
                     }
 
                     backendResponse.setBackendMessage(mensajeBackendResult);

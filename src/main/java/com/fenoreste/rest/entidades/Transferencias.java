@@ -6,6 +6,7 @@
 package com.fenoreste.rest.entidades;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -42,7 +43,7 @@ public class Transferencias implements Serializable {
     private Double amount;
     private String notifyto;
     private Integer notificationchannelid;
-    private Integer transactionid;
+    private BigDecimal transactionid;
     private String destinationname;
     private String destinationbank;
     private String description;
@@ -66,7 +67,7 @@ public class Transferencias implements Serializable {
     public Transferencias() {
     }
 
-    public Transferencias(int idtransaction, Integer subtransactiontypeid, String currencyid, String valuedate, Integer transactiontypeid, Integer transactionstatusid, String clientbankidentifier, String debitproductbankidentifier, Integer debitproducttypeid, String debitcurrencyid, String creditproductbankidentifier, Integer creditproducttypeid, String creditcurrencyid, Double amount, String notifyto, Integer notificationchannelid, Integer transactionid, String destinationname, String destinationbank, String description, String bankroutingnumber, String sourcename, String sourcebank, boolean regulationamountexceeded, String sourcefunds, String destinationfunds, Double transactioncost, String transactioncostcurrencyid, Double exchangerate, Date fechaejecucion, String destinationdocumentid_documentnumber, String destinationdocumentid_documenttype, String sourcedocumentid_documentnumber, String sourcedocumentid_documenttype, String userdocumentid_documentnumber, String userdocumentid_documenttype) {
+    public Transferencias(int idtransaction, Integer subtransactiontypeid, String currencyid, String valuedate, Integer transactiontypeid, Integer transactionstatusid, String clientbankidentifier, String debitproductbankidentifier, Integer debitproducttypeid, String debitcurrencyid, String creditproductbankidentifier, Integer creditproducttypeid, String creditcurrencyid, Double amount, String notifyto, Integer notificationchannelid, BigDecimal transactionid, String destinationname, String destinationbank, String description, String bankroutingnumber, String sourcename, String sourcebank, boolean regulationamountexceeded, String sourcefunds, String destinationfunds, Double transactioncost, String transactioncostcurrencyid, Double exchangerate, Date fechaejecucion, String destinationdocumentid_documentnumber, String destinationdocumentid_documenttype, String sourcedocumentid_documentnumber, String sourcedocumentid_documenttype, String userdocumentid_documentnumber, String userdocumentid_documenttype) {
         this.idtransaction = idtransaction;
         this.subtransactiontypeid = subtransactiontypeid;
         this.currencyid = currencyid;
@@ -233,11 +234,11 @@ public class Transferencias implements Serializable {
         this.notificationchannelid = notificationchannelid;
     }
 
-    public Integer getTransactionid() {
+    public BigDecimal getTransactionid() {
         return transactionid;
     }
 
-    public void setTransactionid(Integer transactionid) {
+    public void setTransactionid(BigDecimal transactionid) {
         this.transactionid = transactionid;
     }
 
@@ -392,9 +393,6 @@ public class Transferencias implements Serializable {
     public void setUserdocumentid_documenttype(String userdocumentid_documenttype) {
         this.userdocumentid_documenttype = userdocumentid_documenttype;
     }
-
-    
-    
 
     @Override
     public String toString() {
