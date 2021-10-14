@@ -529,33 +529,45 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             String sai = RsSai.getSingleResult().toString();
             String[] parts = sai.split("\\|");
             List list = Arrays.asList(parts);
-
-            for (int i = 0; i < list.size(); i++) {
-                System.out.println("i:" + i + "=" + list.get(i));
-            }
-
-            //Obtengo la amortizacion que se vence
+            Query query_next_fee=null;
+            Amortizaciones amm=null;
+                Double imvencido=0.0,iovencido=0.0,montoCuota=0.0;
+            
+            int estatus_amortizacion = 0;//El estatus de la amortizacion
+            if(list.get(13).toString().equals("C")){
+                 //Obtengo la amortizacion que se vence
             String consultaA = "SELECT * FROM amortizaciones WHERE idorigenp=" + o
                     + " AND idproducto=" + p
                     + " AND idauxiliar=" + a
-                    + " AND vence='" + list.get(10) + "'";//en la pocision 8 esta la fecha de vencimiento
+                    + " AND vence='" + list.get(10) + "'";
             System.out.println("consulta_amortizacion:" + consultaA);
-            Query query_next_fee = em.createNativeQuery(consultaA, Amortizaciones.class);
-            Amortizaciones amm = (Amortizaciones) query_next_fee.getSingleResult();
-            Double iovencido = Double.parseDouble(list.get(12).toString()) + Double.parseDouble(list.get(17).toString());
-            Double imvencido = Double.parseDouble(list.get(9).toString()) + Double.parseDouble(list.get(18).toString());
-            //Double montovencido = Double.parseDouble(list.get(4).toString());
-
-            int estatus_amortizacion = 0;//El estatus de la amortizacion
+            query_next_fee = em.createNativeQuery(consultaA, Amortizaciones.class);
+            amm = (Amortizaciones) query_next_fee.getSingleResult();            
             if (Double.parseDouble(amm.getAbono().toString()) == Double.parseDouble(amm.getAbonopag().toString())) {
                 estatus_amortizacion = 3;
             } else if (Double.parseDouble(amm.getAbono().toString()) > Double.parseDouble(amm.getAbonopag().toString()) && amm.getTodopag() == false) {
                 estatus_amortizacion = 1;
-            } else if (!list.get(14).toString().equals("C")) {//Si esta vencido
+            } else if (!list.get(13).toString().equals("C")) {//Si esta vencido
                 estatus_amortizacion = 2;
             }
+            montoCuota=amm.getAbono().doubleValue() + iovencido + imvencido;
+            //Double montovencido = Double.parseDouble(list.get(4).toString());
+            }else{
+                String consultaA = "SELECT sum(abono)-sum(abonopag) FROM amortizaciones WHERE idorigenp=" + o
+                    + " AND idproducto=" + p
+                    + " AND idauxiliar=" + a
+                    + " AND date(vence)<'"+ list.get(10) + "'"
+                    + " AND todopag=false";
+            System.out.println("consulta_amortizacion_moroso:" + consultaA);
+            Query total_a_cubrir_hoy=em.createNativeQuery(consultaA);
+            montoCuota=Double.parseDouble(String.valueOf(total_a_cubrir_hoy.getSingleResult()))+iovencido+imvencido;
+            }
+            iovencido = Double.parseDouble(list.get(12).toString()) + Double.parseDouble(list.get(17).toString());
+            imvencido = Double.parseDouble(list.get(9).toString()) + Double.parseDouble(list.get(18).toString());
+            
+            
 
-            Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
+            //Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
 
             loanFee.setCapitalBalance(Double.parseDouble(aux.getSaldo().toString()));//Saldo o balance actual del prestamo
             loanFee.setFeeNumber(amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion());//Numero de cuota
@@ -565,7 +577,7 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             loanFee.setOverdueAmount(imvencido);//Monto de mora
             loanFee.setFeeStatusId(estatus_amortizacion);//Estado de la amortizacion
             loanFee.setOthersAmount(0.0);//Otros conceptos asociados
-            loanFee.setTotalAmount(abonoT);//Monto total de la cuota
+            loanFee.setTotalAmount(montoCuota);//Monto total de la cuota
 
             /*loanFee = new LoanFee(
                     Double.parseDouble(aux.getSaldo().toString()),//Saldo o balance del prestamo principal

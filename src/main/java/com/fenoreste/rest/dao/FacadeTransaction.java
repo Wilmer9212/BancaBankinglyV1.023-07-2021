@@ -518,7 +518,7 @@ public abstract class FacadeTransaction<T> {
                     }
 
                     if (envio_ok_sms.toUpperCase().contains("ERROR")) {
-                        backendResponse.setBackendMessage(backendResponse.getBackendMessage()+" "+envio_ok_sms);
+                        backendResponse.setBackendMessage(backendResponse.getBackendMessage() + " " + envio_ok_sms);
                     }
                     backendResponse.setBackendCode("1");
                     backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
@@ -1541,58 +1541,63 @@ public abstract class FacadeTransaction<T> {
                 try {
                     //Si la tdd es el producto conffgurado para              retiros
                     if (Integer.parseInt(tablaProductoTDD.getDato2()) == Integer.parseInt(tabla_retiro.getDato1())) {
-                        System.out.println("si es la TDD");
-                        try {
-                            //Buscando la tarjeta de debito 
-                            tarjeta = new TarjetaDeDebito().buscaTarjetaTDD(opaOrigen.getIdorigenp(), opaOrigen.getIdproducto(), opaOrigen.getIdauxiliar(), em);
-                            System.out.println("Los registros para el Folio son:" + tarjeta);
+                        //Verifico que la activar tdd este en 1--activado
+                        Tablas activa_tdd = util2.busquedaTabla(em, "bankingly_banca_movil", "activar_tdd");
+                        if (Integer.parseInt(activa_tdd.getDato1()) == 1) {
+                            System.out.println("si es la TDD");
+                            try {
+                                //Buscando la tarjeta de debito 
+                                tarjeta = new TarjetaDeDebito().buscaTarjetaTDD(opaOrigen.getIdorigenp(), opaOrigen.getIdproducto(), opaOrigen.getIdauxiliar(), em);
+                                System.out.println("Los registros para el Folio son:" + tarjeta);
 
-                            tddEncontrada = true;
-                        } catch (Exception e) {
-                            System.out.println("El folio para TDD no existe");
-                        }
-                        //si se encontro la Tarjeta de debito
-                        if (tddEncontrada) {
-                            //Verifico el estatuso de la TDD
-                            //Si la tarjeta esta activa
-                            if (tarjeta.getActiva()) {
-                                //Valido segun sea el tipo de transferencia
-                                //Cuentas propias
-                                if (identificadorTransferencia == 1) {
-                                    System.out.println("Es una transferencia a cuenta propia");
-                                    mensaje = validarTransferenciaEntreMisCuentas(transactionOWN.getDebitProductBankIdentifier(),
-                                            transactionOWN.getAmount(),
-                                            transactionOWN.getCreditProductBankIdentifier(),
-                                            transactionOWN.getClientBankIdentifier());
-                                }
-                                //Terceros dentro de la entidad
-                                if (identificadorTransferencia == 2) {
-                                    System.out.println("Es una transferencia a tercero dentro de la entidad");
-                                    mensaje = validarTransferenciaATerceros(transactionOWN.getDebitProductBankIdentifier(),
-                                            transactionOWN.getAmount(),
-                                            transactionOWN.getCreditProductBankIdentifier(),
-                                            transactionOWN.getClientBankIdentifier());
-                                }
-                                //Pago de prestamo propio ---Falta pago de prestamo tercero
-                                if (identificadorTransferencia == 3 || identificadorTransferencia == 4) {
-                                    System.out.println("Es un prestamo");
-                                    mensaje = validarPagoAPrestamos(identificadorTransferencia, transactionOWN.getDebitProductBankIdentifier(),
-                                            transactionOWN.getAmount(),
-                                            transactionOWN.getCreditProductBankIdentifier(),
-                                            transactionOWN.getClientBankIdentifier());
-                                }
-                                if (identificadorTransferencia == 5) {//Si es una orden SPEI  
-                                    System.out.println("Es una orden SPEI");
-                                    //Validamos la orden SPEI
-                                    mensaje = validaOrdenSPEI(SPEIOrden);
+                                tddEncontrada = true;
+                            } catch (Exception e) {
+                                System.out.println("El folio para TDD no existe");
+                            }
+                            //si se encontro la Tarjeta de debito
+                            if (tddEncontrada) {
+                                //Verifico el estatuso de la TDD
+                                //Si la tarjeta esta activa
+                                if (tarjeta.getActiva()) {
+                                    //Valido segun sea el tipo de transferencia
+                                    //Cuentas propias
+                                    if (identificadorTransferencia == 1) {
+                                        System.out.println("Es una transferencia a cuenta propia");
+                                        mensaje = validarTransferenciaEntreMisCuentas(transactionOWN.getDebitProductBankIdentifier(),
+                                                transactionOWN.getAmount(),
+                                                transactionOWN.getCreditProductBankIdentifier(),
+                                                transactionOWN.getClientBankIdentifier());
+                                    }
+                                    //Terceros dentro de la entidad
+                                    if (identificadorTransferencia == 2) {
+                                        System.out.println("Es una transferencia a tercero dentro de la entidad");
+                                        mensaje = validarTransferenciaATerceros(transactionOWN.getDebitProductBankIdentifier(),
+                                                transactionOWN.getAmount(),
+                                                transactionOWN.getCreditProductBankIdentifier(),
+                                                transactionOWN.getClientBankIdentifier());
+                                    }
+                                    //Pago de prestamo propio ---Falta pago de prestamo tercero
+                                    if (identificadorTransferencia == 3 || identificadorTransferencia == 4) {
+                                        System.out.println("Es un prestamo");
+                                        mensaje = validarPagoAPrestamos(identificadorTransferencia, transactionOWN.getDebitProductBankIdentifier(),
+                                                transactionOWN.getAmount(),
+                                                transactionOWN.getCreditProductBankIdentifier(),
+                                                transactionOWN.getClientBankIdentifier());
+                                    }
+                                    if (identificadorTransferencia == 5) {//Si es una orden SPEI  
+                                        System.out.println("Es una orden SPEI");
+                                        //Validamos la orden SPEI
+                                        mensaje = validaOrdenSPEI(SPEIOrden);
+                                    }
+                                } else {
+                                    mensaje = "ESTATUS TARJETA DE DEBITO:INACTIVA";
                                 }
                             } else {
-                                mensaje = "ESTATUS TARJETA DE DEBITO:INACTIVA";
+                                mensaje = "NO EXISTE FOLIO PARA LA TARJETA DE DEBITO";
                             }
-                        } else {
-                            mensaje = "NO EXISTE FOLIO PARA LA TARJETA DE DEBITO";
+                        }else{
+                            mensaje = "POR FAVOR SOLICITE QUE SE ACTIVE EL USO DE TARJETA DE DEBITO";
                         }
-
                     } else {//Solo para pruebas
                         //Si no TDD de donde se esta transfiriendo
                         //Valido segun sea el tipo de transferencia
