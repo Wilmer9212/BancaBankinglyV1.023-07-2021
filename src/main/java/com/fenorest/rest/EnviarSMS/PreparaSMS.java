@@ -42,7 +42,7 @@ public class PreparaSMS {
             OpaDTO opa_destino = null;
 
             //Buscamos el movimiento que se hizo
-            String busqueda_aux_d_origen = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_origen.getIdorigenp() + " ORDER BY fecha DESC LIMIT 1";
+            String busqueda_aux_d_origen = "SELECT * FROM auxiliares_d WHERE idorigenp=" + opa_origen.getIdorigenp() + " AND idproducto=" + opa_origen.getIdproducto() + " AND idauxiliar=" + opa_origen.getIdauxiliar() + " ORDER BY fecha DESC LIMIT 1";
             System.out.println("Busqueda del auxiliar:" + busqueda_aux_d_origen);
             Query query_aux_d_origen = em.createNativeQuery(busqueda_aux_d_origen, AuxiliaresD.class);
             AuxiliaresD ad_origen = (AuxiliaresD) query_aux_d_origen.getSingleResult();

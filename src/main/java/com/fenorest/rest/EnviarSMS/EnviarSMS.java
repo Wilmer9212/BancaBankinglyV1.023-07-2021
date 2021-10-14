@@ -41,7 +41,7 @@ public class EnviarSMS {
     private String enviarSMS(String host, String numero, String mensaje) {
         String r = "";
         System.out.println("Enviando SMS al host"+host+", Numero:"+numero+",mensaje:"+mensaje);
-        /*
+        
         if (host != null && numero != null && mensaje != null) {
             numero = numero.replace(" ", "");
             numero = numero.trim();
@@ -63,7 +63,7 @@ public class EnviarSMS {
             }
         } else {
             System.out.println("url: " + host + "\nnumero: " + numero + "\nmensaje: " + mensaje);
-        }*/
+        }
         return r;
     }
 

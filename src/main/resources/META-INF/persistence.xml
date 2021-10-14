@@ -6,7 +6,12 @@
          <class>com.fenoreste.rest.entidades.tablas</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes> 
         <properties>
-       
+       <property name="eclipselink.jdbc.read-connections.min" value="1" /> 
+       <property name="eclipselink.jdbc.write-connections.min" value="1" /> 
+       <property name="eclipselink.logging.timestamp" value="false" /> 
+       <property name="eclipselink.logging.session" value="false" /> 
+       <property name="eclipselink.logging.thread" value="false" />
+
         </properties>
     </persistence-unit>
 </persistence>
