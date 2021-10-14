@@ -477,7 +477,10 @@ public abstract class FacadeTransaction<T> {
                     Query termina_transaccion = em.createNativeQuery(consulta_termina_transaccion);
                     int registros_limpiados = Integer.parseInt(String.valueOf(termina_transaccion.getSingleResult()));
                     System.out.println("Registros Limpiados con exito:" + registros_limpiados);
+                    String envio_ok_sms = "";
+
                     if (util2.obtenerOrigen(em).toUpperCase().replace(" ", "").contains("SANNICOLAS")) {
+                        PreparaSMS envio_sms = new PreparaSMS();
                         //Verfico si esta activo el permitir enviar sms
                         Tablas tb_sms_activo = util2.busquedaTabla(em, "bankingly_banca_movil", "smsactivo");
                         if (Integer.parseInt(tb_sms_activo.getDato1()) == 1) {
@@ -487,33 +490,36 @@ public abstract class FacadeTransaction<T> {
                                 if (identificadorTransferencia == 1) {
                                     System.out.println("entro a enviar sms a cuenta propia");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
-                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 1, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    //new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 1, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    envio_ok_sms = envio_sms.enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 1, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
                                 } else if (identificadorTransferencia == 2) {
                                     System.out.println("entro a enviar sms a cuenta de tercero");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
-                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 2, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    // new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 2, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    envio_ok_sms = envio_sms.enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 2, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
                                 } else if (identificadorTransferencia == 3) {
                                     System.out.println("entro a enviar sms abono propio");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
-                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 3, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    //new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 3, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    envio_ok_sms = envio_sms.enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 3, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
                                 } else if (identificadorTransferencia == 4) {
                                     System.out.println("entro a enviar sms abono tercero");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
-                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 4, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    //new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 4, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    envio_ok_sms = envio_sms.enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 4, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
                                 } else if (identificadorTransferencia == 5) {
                                     System.out.println("entro a enviar sms SPEI salida");
                                     //Enviamos datos a preparar el sms indicando que debe obtener datos de mensaje a cuenta propia
-                                    new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 5, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    //new PreparaSMS().enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 5, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
+                                    envio_ok_sms = envio_sms.enviaSMS_CSN(em, String.valueOf(transaction.getAmount()), 5, transaction.getDebitproductbankidentifier(), transaction.getCreditproductbankidentifier(), transaction.getClientbankidentifier());
                                 }
                             }
                         }
                     }
-                    //Guardo en una tabla el hisotiral de la operacion realizada
-                    transaction.setTransactionid(new BigDecimal(procesaOrigen.getReferencia().trim()));
-                    em.getTransaction().begin();
-                    em.persist(transaction);
-                    em.getTransaction().commit();
 
+                    if (envio_ok_sms.toUpperCase().contains("ERROR")) {
+                        backendResponse.setBackendMessage(backendResponse.getBackendMessage()+" "+envio_ok_sms);
+                    }
                     backendResponse.setBackendCode("1");
                     backendResponse.setBackendReference(transaction.getTransactiontypeid().toString());
                     backendResponse.setIsError(false);
@@ -526,6 +532,16 @@ public abstract class FacadeTransaction<T> {
 
                     backendResponse.setBackendMessage(mensajeBackendResult);
                     backendResponse.setBackendReference(transaction.getTransactionid().toString());
+
+                    //Para que no se genere error
+                    try {
+                        //Guardo en una tabla el historial de la operacion realizada
+                        transaction.setTransactionid(new BigDecimal(procesaOrigen.getReferencia().trim()));
+                        em.getTransaction().begin();
+                        em.persist(transaction);
+                        em.getTransaction().commit();
+                    } catch (Exception e) {
+                    }
 
                 }
 

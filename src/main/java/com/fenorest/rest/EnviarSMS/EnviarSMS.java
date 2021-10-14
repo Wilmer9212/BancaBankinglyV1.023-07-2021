@@ -12,7 +12,7 @@ import java.net.URL;
  * @author wilmer
  */
 public class EnviarSMS {
-
+    /*
     // PARAMETROS: host, numero, mensaje
     public void enviar(String host, String numero, String mensaje) {
         ThreadEnviarSMS threadEnviarSMS = new ThreadEnviarSMS(host, numero, mensaje);
@@ -35,10 +35,10 @@ public class EnviarSMS {
             enviarSMS(host, numero, mensaje);
         }
 
-    }
+    }*/
 
     // PARAMETROS: host, numero, mensaje
-    private String enviarSMS(String host, String numero, String mensaje) {
+    public String enviarSMS(String host, String numero, String mensaje) {
         String r = "";
         System.out.println("Enviando SMS al host"+host+", Numero:"+numero+",mensaje:"+mensaje);
         
@@ -56,19 +56,22 @@ public class EnviarSMS {
                     host = host.replace("_numero", numero);
                     r = simpleConeccionURL(host);
                 } else {
+                    r = "Error: Mensaje mayor a 160 caracteres en EnvioSMS";
                     System.out.println("Error: Mensaje mayor a 160 caracteres en EnvioSMS" + r);//mensaje mayor a 160 caracteres
                 }
             } else {
+                    r = "Error: Numero invalido en EnvioSMS.";
                 System.out.println("Error: Numero invalido en EnvioSMS. " + r); //numero invalido
             }
         } else {
+            r = "URL para envio SMS invalida";
             System.out.println("url: " + host + "\nnumero: " + numero + "\nmensaje: " + mensaje);
         }
         return r;
     }
 
     public String simpleConeccionURL(String urlString) {
-        String inputLine = null;
+        String mensaje_ok_envio = "";
         try {
             // Creo un objeto url con la cadena
             URL url = new URL(urlString);
@@ -81,14 +84,17 @@ public class EnviarSMS {
             con.setReadTimeout(3000);
             //Si la conexion fue exitosa
             if (con.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                System.out.println("No se envio el mensaje, error en conexion. ");
+                System.out.println("No se envio el mensaje, error en conexion.");
+                mensaje_ok_envio="Error desconocido no se pudo enviar el SMS";
             }else{
+                mensaje_ok_envio="SMS enviado con exito";
                 System.out.println("Enviado");
             }
         } catch (Exception e) {
-            return "Exception en WsConnExternos.simpleConeccionURL " + e.getMessage();
+            mensaje_ok_envio = "Error desconocido no se pudo enviar el SMS:"+e.getMessage();
+            return mensaje_ok_envio;// "Exception en WsConnExternos.simpleConeccionURL " + e.getMessage();
         }
-        return inputLine;
+        return mensaje_ok_envio;
     }
 
 }

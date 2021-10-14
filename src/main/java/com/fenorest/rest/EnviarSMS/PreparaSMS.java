@@ -31,8 +31,9 @@ public class PreparaSMS {
     EnviarSMS sendSMS = new EnviarSMS();
 
     // ENVIA EL SMS METODO PRA CSN
-    public void enviaSMS_CSN(EntityManager em, String montoAbono, int identificadorOperacion, String debitAccount, String creditAccount, String numeroSocio) {
+    public String enviaSMS_CSN(EntityManager em, String montoAbono, int identificadorOperacion, String debitAccount, String creditAccount, String numeroSocio) {
         System.out.println("preparando el sms");
+        String respuesta_sms = "";
         //consulto en tablas si existe la url del script de san nicolas para envio de mensajes
         try {
 
@@ -71,7 +72,6 @@ public class PreparaSMS {
                 Persona p = em.find(Persona.class, personaPK);
                 Tablas tablaContenidoSMS = null;
                 String contenidoSMS = "";
-
                 String auth_origen = ad_origen.getIdorigenc() + "" + ad_origen.getPeriodo() + "" + ad_origen.getIdtipo() + "" + ad_origen.getIdpoliza();
                 //Se identifica para transferencias a cuentas propias
                 if (identificadorOperacion == 1) {
@@ -79,7 +79,8 @@ public class PreparaSMS {
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), pr_destino.getNombre(), auth_origen, auth_destino);
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
-                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    //sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    respuesta_sms = sendSMS.enviarSMS(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
                     //Transferencia a terceros dentro de la entidad
                 } else if (identificadorOperacion == 2) {
                     System.out.println("Tercero");
@@ -87,7 +88,7 @@ public class PreparaSMS {
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), pr_destino.getNombre(), auth_origen, auth_destino);
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
-                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    respuesta_sms = sendSMS.enviarSMS(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
                     //Pago de prestamos
                 } else if (identificadorOperacion == 3) {
                     System.out.println("Pago prestamo propio");
@@ -95,27 +96,27 @@ public class PreparaSMS {
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), pr_destino.getNombre(), auth_origen, auth_destino);
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
-                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    respuesta_sms = sendSMS.enviarSMS(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
                 } else if (identificadorOperacion == 4) {
                     System.out.println("Pago prestamo tercero");
                     tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), pr_destino.getNombre(), auth_origen, auth_destino);
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
-                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    respuesta_sms = sendSMS.enviarSMS(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
                 } else if (identificadorOperacion == 5) {
                     System.out.println("Pago orden SPEI");
                     tablaContenidoSMS = util.busquedaTabla(em, "bankingly_banca_movil", "sms_retiro_cuenta_tercero");
                     System.out.println("tabla contenido sms:" + tablaContenidoSMS);
                     contenidoSMS = contenidoSMS(tablaContenidoSMS.getDato2(), montoAbono, pr_origen.getNombre(), creditAccount, auth_origen, "");
                     System.out.println("El contenido de tu mensaje es:" + contenidoSMS);
-                    sendSMS.enviar(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
+                    respuesta_sms = sendSMS.enviarSMS(tablasUrlSMS.getDato2(), p.getCelular(), contenidoSMS);
                 }
             }
         } catch (Exception e) {
             System.out.println("Error en sms:" + e.getMessage());
-        }
-
+        }        
+        return respuesta_sms;
     }
 
     // RELLENA EL CONTENIDO DEL SMS
