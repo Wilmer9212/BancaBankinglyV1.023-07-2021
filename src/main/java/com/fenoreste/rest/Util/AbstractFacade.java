@@ -30,6 +30,7 @@ public abstract class AbstractFacade<T> {
         EntityManager em = null;
         JPAUtil jpa = new JPAUtil();   
         em=jpa.getEntityManager(datos.getHost(),datos.getDatabase());
+        em.clear();
         return em;
     }
 

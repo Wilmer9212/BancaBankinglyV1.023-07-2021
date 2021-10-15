@@ -102,7 +102,7 @@ public abstract class FacadeLoan<T> {
         EntityManager em = AbstractFacade.conexion();
         LoanFee loanFee = null;
         OpaDTO opa = util.opa(productBankIdentifier);
-
+        em.clear();
         try {
             AuxiliaresPK pk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar());
             Auxiliares aux = em.find(Auxiliares.class, pk);
@@ -154,10 +154,14 @@ public abstract class FacadeLoan<T> {
                     loanf.getId(),
                     Double.parseDouble(amm.getAbono().toString()),
                     abonoT);
+         
         } catch (Exception e) {
             System.out.println("Error en LoanFee:" + e.getMessage());
-
+            em.close();
+        }finally{
+          em.close();  
         }
+        
 
         return loanFee;
     }
