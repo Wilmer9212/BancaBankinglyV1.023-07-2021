@@ -118,13 +118,13 @@ public abstract class FacadeProductos<T> {
             }
             System.out.println("Lista:" + ListagetP);
 
-            return ListagetP;
-
         } catch (Exception e) {
             e.getStackTrace();
-            System.out.println("Error Producido:" + e.getMessage());
-        } 
-        return null;
+            System.out.println("Error Producido en buscar producto:" + e.getMessage());
+        } finally {
+            em.close();
+        }
+        return ListagetP;
     }
 
     public List<ProductsConsolidatePositionDTO> ProductsConsolidatePosition(String clientBankIdentifier, List<String> productsBank) {
@@ -261,9 +261,10 @@ public abstract class FacadeProductos<T> {
             System.out.println("Lista:" + ListaReturn);
 
         } catch (Exception e) {
-            
-            System.out.println("Error produucido:" + e.getMessage());
-        } 
+            System.out.println("Error produucido en consilidated position:" + e.getMessage());
+        } finally {
+            em.close();
+        }
         return ListaReturn;
 
     }
@@ -333,9 +334,10 @@ public abstract class FacadeProductos<T> {
 
             }
         } catch (Exception ex) {
-           
-            return listaEstadosDeCuenta;
-        } 
+            System.out.println("Error al buscar estados de cuenta:" + ex.getMessage());
+        } finally {
+            em.close();
+        }
         System.out.println("ListaECuenta:" + listaEstadosDeCuenta);
         return listaEstadosDeCuenta;
     }
@@ -398,8 +400,9 @@ public abstract class FacadeProductos<T> {
             bw.close();
         } catch (Exception e) {
             System.out.println("Error en crear estado de cuenta a TXT:" + e.getMessage());
-          
-        } 
+        } finally {
+            em.close();
+        }
         return file;
     }
 
@@ -496,7 +499,8 @@ public abstract class FacadeProductos<T> {
             }
         } catch (Exception e) {
             System.out.println("Error al verificar el horario de actividad");
-         
+        } finally {
+            em.close();
         }
 
         return bandera_;

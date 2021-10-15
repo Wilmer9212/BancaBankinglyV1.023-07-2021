@@ -2,7 +2,6 @@ package com.fenoreste.rest.dao;
 
 import com.fenoreste.rest.Util.UtilidadesGenerales;
 import com.fenoreste.rest.DTO.OpaDTO;
-import com.fenoreste.rest.DTO.TablasDTO;
 import com.fenoreste.rest.Util.AbstractFacade;
 import com.fenoreste.rest.ResponseDTO.AccountLast5MovementsDTO;
 import com.fenoreste.rest.ResponseDTO.AccountDetailsDTO;
@@ -30,13 +29,15 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 public abstract class FacadeAccounts<T> {
-    Utilidades util=new Utilidades();
+
+    Utilidades util = new Utilidades();
     Calendar calendar = Calendar.getInstance();
     Date hoy = calendar.getTime();
-    
-    UtilidadesGenerales util2=new UtilidadesGenerales();
-    public FacadeAccounts(Class<T> entityClass) {}
- 
+
+    UtilidadesGenerales util2 = new UtilidadesGenerales();
+
+    public FacadeAccounts(Class<T> entityClass) {
+    }
 
     public AccountDetailsDTO GetAccountDetails(String accountId) {
         //0302823264400006853 opa con mivimientos 29/11/2020 24 Hrs
@@ -44,11 +45,11 @@ public abstract class FacadeAccounts<T> {
         //0302203666400000037 opa sin movimientos durante 48 Hrs
         //
         EntityManager em = AbstractFacade.conexion();
-        OpaDTO opa=util.opa(accountId);
+        OpaDTO opa = util.opa(accountId);
         AccountDetailsDTO cuenta = null;
         System.out.println("O:" + opa.getIdorigenp() + ",P:" + opa.getIdproducto() + ",A:" + opa.getIdauxiliar());
         try {
-            AuxiliaresPK auxpk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(),opa.getIdauxiliar());
+            AuxiliaresPK auxpk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar());
             Auxiliares aux = em.find(Auxiliares.class, auxpk);
             Productos prod = em.find(Productos.class, aux.getAuxiliaresPK().getIdproducto());
             String S24H = DateFormat.getDateInstance().format(substractDate(1));
@@ -61,14 +62,14 @@ public abstract class FacadeAccounts<T> {
             double saldosF[] = null;
             //Si el producto es TDD
             //Leemos ws de TDD Alestra
-            TarjetaDeDebito wsTDD=new TarjetaDeDebito();
-            Tablas productoWs=new TarjetaDeDebito().productoTddwebservice(em);
-            if (caja().contains("SANNICOLAS") && Integer.parseInt(productoWs.getDato2())==aux.getAuxiliaresPK().getIdproducto()) {
-                WsSiscoopFoliosTarjetasPK1 foliosPK=new WsSiscoopFoliosTarjetasPK1(aux.getAuxiliaresPK().getIdorigenp(),aux.getAuxiliaresPK().getIdproducto(),aux.getAuxiliaresPK().getIdauxiliar());
-                BalanceQueryResponseDto responseSaldo=wsTDD.saldoTDD(foliosPK,em);
-                saldo24=responseSaldo.getAvailableAmount();
-                saldo48=responseSaldo.getAvailableAmount();
-                saldo=responseSaldo.getAvailableAmount();
+            TarjetaDeDebito wsTDD = new TarjetaDeDebito();
+            Tablas productoWs = new TarjetaDeDebito().productoTddwebservice(em);
+            if (util2.obtenerOrigen(em).contains("SANNICOLAS") && Integer.parseInt(productoWs.getDato2()) == aux.getAuxiliaresPK().getIdproducto()) {
+                WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(aux.getAuxiliaresPK().getIdorigenp(), aux.getAuxiliaresPK().getIdproducto(), aux.getAuxiliaresPK().getIdauxiliar());
+                BalanceQueryResponseDto responseSaldo = wsTDD.saldoTDD(foliosPK, em);
+                saldo24 = responseSaldo.getAvailableAmount();
+                saldo48 = responseSaldo.getAvailableAmount();
+                saldo = responseSaldo.getAvailableAmount();
             } else {
                 saldosF = getSaldoAuxiliaresD(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar(), S24H, S48H);
                 saldo24 = saldosF[0];
@@ -128,14 +129,15 @@ public abstract class FacadeAccounts<T> {
                     Boolean.TRUE);
         } catch (Exception e) {
             System.out.println("Error en GetAccountDetails:" + e.getMessage());
+        } finally {
+            em.close();
         }
-
         return cuenta;//cuenta;
 
     }
 
     public List<AccountLast5MovementsDTO> getAccountLast5Movements(String accountId) {
-        OpaDTO opa=util.opa(accountId);
+        OpaDTO opa = util.opa(accountId);
         AccountLast5MovementsDTO cuenta;
         boolean isDC = false;
         String Description = "";
@@ -148,7 +150,7 @@ public abstract class FacadeAccounts<T> {
                     + "         WHERE replace((to_char(idorigenp,'099999')||to_char(idproducto,'09999')||to_char(idauxiliar,'09999999')),' ','')= ? ORDER BY fecha DESC LIMIT 5";*/
             String consulta = " SELECT m.* "
                     + "         FROM auxiliares_d m"
-                    + "         WHERE idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+" ORDER BY fecha DESC LIMIT 5";
+                    + "         WHERE idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar() + " ORDER BY fecha DESC LIMIT 5";
             Query last5Movements = em.createNativeQuery(consulta);
             //k.setParameter(1, accountId);
             int movementTypeId = 0;
@@ -184,7 +186,9 @@ public abstract class FacadeAccounts<T> {
 
         } catch (Exception e) {
             System.out.println("Error en GetAccountLast5Movements:" + e.getMessage());
-        } 
+        } finally {
+            em.close();
+        }
         return ListaDTO;
     }
 
@@ -194,7 +198,7 @@ public abstract class FacadeAccounts<T> {
         String Description = "";
         List<AccountMovementsDTO> ListaDTO = new ArrayList<AccountMovementsDTO>();
         String complemento = "";
-        OpaDTO opa=util.opa(productBankIdentifier);
+        OpaDTO opa = util.opa(productBankIdentifier);
         EntityManager em = AbstractFacade.conexion();
         try {
             System.out.println("orderB:" + orderBy);
@@ -248,7 +252,7 @@ public abstract class FacadeAccounts<T> {
                     break;
 
             }
-            
+
             int pageNumber = pageStartIndex;
             int pageSizes = pageSize;
             int inicioB = 0;
@@ -259,21 +263,21 @@ public abstract class FacadeAccounts<T> {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
                         + "         WHERE date(fecha) between '" + dateFromFilter + "'"
-                        + "         AND '" + dateToFilter + "' AND idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
+                        + "         AND '" + dateToFilter + "' AND idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar() + " " + complemento;
             } else if (!dateFromFilter.equals("") && dateToFilter.equals("")) {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
-                        + "         WHERE date(fecha) > '" + dateFromFilter + "' AND idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
+                        + "         WHERE date(fecha) > '" + dateFromFilter + "' AND idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar() + " " + complemento;
 
             } else if (dateFromFilter.equals("") && !dateToFilter.equals("")) {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
-                        + "         WHERE date(fecha) < '" + dateToFilter + "' AND idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
+                        + "         WHERE date(fecha) < '" + dateToFilter + "' AND idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar() + " " + complemento;
 
             } else {
                 consulta = " SELECT *"
                         + "         FROM auxiliares_d"
-                        + "         WHERE  idorigenp="+opa.getIdorigenp()+" AND idproducto="+opa.getIdproducto()+" AND idauxiliar="+opa.getIdauxiliar()+ " "+ complemento;
+                        + "         WHERE  idorigenp=" + opa.getIdorigenp() + " AND idproducto=" + opa.getIdproducto() + " AND idauxiliar=" + opa.getIdauxiliar() + " " + complemento;
 
             }
 
@@ -326,6 +330,8 @@ public abstract class FacadeAccounts<T> {
             System.out.println("salio y ListaDTO:" + ListaDTO);
         } catch (Exception e) {
             System.out.println("Error en account:" + e.getMessage());
+        } finally {
+            em.close();
         }
         return ListaDTO;
     }
@@ -391,44 +397,50 @@ public abstract class FacadeAccounts<T> {
         double saldo3 = 0.0;
         double saldos[] = new double[3];
         EntityManager em = AbstractFacade.conexion();
-        if (!fecha.equals("") && !fecha2.equals("")) {
-            String consulta = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
-                    + " AND idproducto=" + p
-                    + " AND idauxiliar=" + a
-                    + " AND date(fecha) ='" + fecha + "'";
-            System.out.println("Consulta 1:" + consulta);
-            Query query = em.createNativeQuery(consulta);
+        try {
+            if (!fecha.equals("") && !fecha2.equals("")) {
+                String consulta = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
+                        + " AND idproducto=" + p
+                        + " AND idauxiliar=" + a
+                        + " AND date(fecha) ='" + fecha + "'";
+                System.out.println("Consulta 1:" + consulta);
+                Query query = em.createNativeQuery(consulta);
 
-            String consulta2 = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
-                    + " AND idproducto=" + p
-                    + " AND idauxiliar=" + a
-                    + " AND date(fecha) ='" + fecha2 + "'";
-            Query query2 = em.createNativeQuery(consulta2);
+                String consulta2 = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
+                        + " AND idproducto=" + p
+                        + " AND idauxiliar=" + a
+                        + " AND date(fecha) ='" + fecha2 + "'";
+                Query query2 = em.createNativeQuery(consulta2);
 
-            String consulta3 = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
-                    + " AND idproducto=" + p
-                    + " AND idauxiliar=" + a + " ORDER BY fecha DESC limit 1";
-            Query query3 = em.createNativeQuery(consulta3);
+                String consulta3 = "SELECT case when saldoec > 0 then saldoec else 0.0 end FROM auxiliares_d WHERE " + "idorigenp=" + o
+                        + " AND idproducto=" + p
+                        + " AND idauxiliar=" + a + " ORDER BY fecha DESC limit 1";
+                Query query3 = em.createNativeQuery(consulta3);
 
-            try {
-                saldo1 = Double.parseDouble(String.valueOf(query.getSingleResult()));
-            } catch (Exception e) {
+                try {
+                    saldo1 = Double.parseDouble(String.valueOf(query.getSingleResult()));
+                } catch (Exception e) {
+                }
+                try {
+                    saldo2 = Double.parseDouble(String.valueOf(query2.getSingleResult()));
+                } catch (Exception e) {
+                }
+                try {
+                    saldo3 = Double.parseDouble(String.valueOf(query3.getSingleResult()));
+                } catch (Exception e) {
+                }
+
+                System.out.println("Saliendo");
+                saldos[0] = saldo1;
+                saldos[1] = saldo2;
+                saldos[2] = saldo3;
+            } else {
+                System.out.println("Defina fechas por favor");
             }
-            try {
-                saldo2 = Double.parseDouble(String.valueOf(query2.getSingleResult()));
-            } catch (Exception e) {
-            }
-            try {
-                saldo3 = Double.parseDouble(String.valueOf(query3.getSingleResult()));
-            } catch (Exception e) {
-            }
-
-            System.out.println("Saliendo");
-            saldos[0] = saldo1;
-            saldos[1] = saldo2;
-            saldos[2] = saldo3;
-        } else {
-            System.out.println("Defina fechas por favor");
+        } catch (Exception e) {
+            System.out.println("Error en obtener auxiliares_d:" + e.getMessage());
+        } finally {
+            em.close();
         }
         System.out.println("saldos:" + saldo1 + "," + saldo2 + "," + saldo3);
         return saldos;
@@ -470,37 +482,25 @@ public abstract class FacadeAccounts<T> {
             count = Integer.parseInt(b1.toString());
         } catch (Exception e) {
             System.out.println("Error al contar registros:" + e.getMessage());
+        } finally {
+            em.close();
         }
         return count;
     }
 
-    public String caja() {
-        EntityManager em = AbstractFacade.conexion();
-        String nombreOrigen = "";
-        try {
-            String consulta = "SELECT replace(nombre,' ','') FROM origenes WHERE matriz=0";
-            System.out.println("ConsultaOrigen:" + consulta);
-            Query query = em.createNativeQuery(consulta);
-            nombreOrigen = String.valueOf(query.getSingleResult());
-        } catch (Exception e) {
-            System.out.println("Error al crear origen trabajando:" + e.getMessage());
-            return "";
-        } 
-        return nombreOrigen.replace(" ", "").toUpperCase();
-    }
-    
     public boolean actividad_horario() {
         EntityManager em = AbstractFacade.conexion();//emf.createEntityManager()EntityManager em = emf.createEntityManager();EntityManager em = emf.createEntityManager();
-        boolean bandera_=false;
+        boolean bandera_ = false;
         try {
             if (util2.actividad(em)) {
-                bandera_=true;
+                bandera_ = true;
             }
         } catch (Exception e) {
             System.out.println("Error al verificar el horario de actividad");
-           
-        } 
-        
+        } finally {
+            em.close();
+        }
+
         return bandera_;
     }
 

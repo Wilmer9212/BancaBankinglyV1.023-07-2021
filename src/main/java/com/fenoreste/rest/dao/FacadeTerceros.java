@@ -93,17 +93,20 @@ public abstract class FacadeTerceros<T> {
                     productosTerceros.setUserDocumentId_documentType(String.valueOf(dtoInput.getUserDocumentId().getDocumentType()));
                     productosTerceros.setUserDocumentId_integrationProperties(dtoInput.getUserDocumentId().getIntegrationProperties());
                     try {
-                        if (!em.getTransaction().isActive()) {
+                        em.getTransaction().begin();
+                        em.persist(productosTerceros);
+                        em.getTransaction().commit();
+                        /*if (!em.getTransaction().isActive()) {
                             em.clear();
                             em.getTransaction().begin();
                             em.persist(productosTerceros);
 
                         }
-                        em.getTransaction().commit();
+                        em.getTransaction().commit();*/
                     } catch (Exception e) {
-                        if (em.getTransaction().isActive()) {
+                        /*if (em.getTransaction().isActive()) {
                             em.getTransaction().rollback();
-                        }
+                        }*/
                     }
                 }
                 if (i == dtoInput.getClientBankIdentifiers().size() - 1 && backendMessage.equals("")) {
@@ -128,11 +131,13 @@ public abstract class FacadeTerceros<T> {
                 dtoResult.setTransactionIdenty(productosTerceros.getThirdPartyProductNumber());
 
             }
-            
+
         } catch (Exception e) {
             e.printStackTrace();
-            
+
             System.out.println("Error:" + e.getMessage());
+        } finally {
+            em.close();
         }
         return dtoResult;
 
@@ -198,8 +203,10 @@ public abstract class FacadeTerceros<T> {
             }
         } catch (Exception e) {
             System.out.println("Error:" + e.getMessage());
-          
-        } 
+
+        } finally {
+            em.close();
+        }
         return dto;
 
     }
@@ -231,9 +238,9 @@ public abstract class FacadeTerceros<T> {
             }
         } catch (Exception e) {
             System.out.println("Error validando producto de tercero :" + e.getMessage());
-          
-            return null;
-        } 
+        } finally {
+            em.close();
+        }
         return null;
 
     }
@@ -247,7 +254,9 @@ public abstract class FacadeTerceros<T> {
             }
         } catch (Exception e) {
             System.out.println("Error al verificar el horario de actividad");
-         
+
+        } finally {
+            em.close();
         }
 
         return bandera_;

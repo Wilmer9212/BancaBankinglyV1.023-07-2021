@@ -90,8 +90,9 @@ public abstract class FacadeLoan<T> {
                 System.out.println("LoanPre:" + dto);
             }
         } catch (Exception e) {
-
             System.out.println("Error en GetAccountDetails:" + e.getMessage());
+        } finally {
+            em.close();
         }
 
         return dto;//cuenta;
@@ -102,7 +103,6 @@ public abstract class FacadeLoan<T> {
         EntityManager em = AbstractFacade.conexion();
         LoanFee loanFee = null;
         OpaDTO opa = util.opa(productBankIdentifier);
-        em.clear();
         try {
             AuxiliaresPK pk = new AuxiliaresPK(opa.getIdorigenp(), opa.getIdproducto(), opa.getIdauxiliar());
             Auxiliares aux = em.find(Auxiliares.class, pk);
@@ -136,10 +136,10 @@ public abstract class FacadeLoan<T> {
             Loan_Fee_Status loanf = em.find(Loan_Fee_Status.class, loanfeests);
             LocalDateTime now = LocalDateTime.now();
             Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
-            System.out.println("ammmVenceeeeeeeeeee:"+convertToLocalDateViaInstant(amm.getVence()));
-            System.out.println("ammmVenceeeeeeeeeee:"+convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
-            String converted=String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
-            System.out.println("convrteddddddd:"+converted);
+            System.out.println("ammmVenceeeeeeeeeee:" + convertToLocalDateViaInstant(amm.getVence()));
+            System.out.println("ammmVenceeeeeeeeeee:" + convertToLocalDateTimeViaInstant(amm.getVence()) + ":00.000Z");
+            String converted = String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence()) + ":00.000Z");
+            System.out.println("convrteddddddd:" + converted);
             Date d = amm.getVence();
             Date today = amm.getVence();
             LocalDateTime ldt = LocalDateTime.ofInstant(today.toInstant(), ZoneId.systemDefault());
@@ -154,22 +154,20 @@ public abstract class FacadeLoan<T> {
                     loanf.getId(),
                     Double.parseDouble(amm.getAbono().toString()),
                     abonoT);
-         
         } catch (Exception e) {
             System.out.println("Error en LoanFee:" + e.getMessage());
+        } finally {
             em.close();
-        }finally{
-          em.close();  
         }
-        
-
         return loanFee;
     }
-public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
-    return dateToConvert.toInstant()
-      .atZone(ZoneId.systemDefault())
-      .toLocalDateTime();
-}
+
+    public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
+        return dateToConvert.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+    }
+
     public List<LoanFee> LoanFees(String productBankIdentifier, int feesStatus, int pageSize, int pageStartIndex, String order) {
         EntityManager em = AbstractFacade.conexion();
         LoanFee loanFee = null;
@@ -243,7 +241,7 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
                 LocalDateTime now = LocalDateTime.now();
                 Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
                 Date d = amm.getVence();
-                String converted=String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
+                String converted = String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence()) + ":00.000Z");
                 loanFee = new LoanFee(
                         Double.parseDouble(aux.getSaldo().toString()),//Saldo o balance del prestamo principal
                         amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion(),
@@ -259,7 +257,8 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
 
         } catch (Exception e) {
             System.out.println("Error en LoanFee:" + e.getMessage());
-
+        } finally {
+            em.close();
         }
         System.out.println("ListaFees:" + listaFees);
         return listaFees;
@@ -291,8 +290,8 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
                 System.out.println("Error en eliminar:" + e.getMessage());
             }
             System.out.println("aunuuuu pasoooooooooooooooooo");
-             LocalDateTime now = LocalDateTime.now();
-                     System.out.println("nowcccccccccccccccccccccccccccccccccccccc:"+String.valueOf(now)+"Z");
+            LocalDateTime now = LocalDateTime.now();
+            System.out.println("nowcccccccccccccccccccccccccccccccccccccc:" + String.valueOf(now) + "Z");
             for (Object[] lista : MiLista) {
 
                 for (int x = 0; x < lista.length; x++) {
@@ -325,16 +324,16 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
                 queryLoan.setFirstResult(pageStartIndex);
                 queryLoan.setMaxResults(pageSize);
                 List<LoanRates> listaRatess = queryLoan.getResultList();
-                String converted="";//String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
+                String converted = "";//String.valueOf(convertToLocalDateTimeViaInstant(amm.getVence())+":00.000Z");
                 for (int j = 0; j < listaRatess.size(); j++) {
-                    
+
                     LoanRates loanrtt = listaRatess.get(j);
                     String str = "2016-03-04 11:30:40";
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                     LocalDateTime dateTime = LocalDateTime.parse(str, formatter);
-                     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    LocalDateTime localDate = LocalDateTime.parse("2021-10-07"+" 00:00:00", dtf);
-                    converted=loanrtt.getInitialdate()+"T00:00:00.000Z";////String.valueOf(convertToLocalDateTimeViaInstant(.getInitialdate()))+":00.000Z");
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime localDate = LocalDateTime.parse("2021-10-07" + " 00:00:00", dtf);
+                    converted = loanrtt.getInitialdate() + "T00:00:00.000Z";////String.valueOf(convertToLocalDateTimeViaInstant(.getInitialdate()))+":00.000Z");
                     loanRate = new LoanRate(/*String.valueOf(String.valueOf(now)+"Z")*/converted, loanrtt.getRate());
                     System.out.println("LoanRattt:" + loanrtt);
                     listaRates.add(loanRate);
@@ -374,6 +373,7 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
 
             System.out.println("Error en LoanFee:" + e.getMessage());
         }
+        em.close();
 
         return listaRates;
     }
@@ -430,7 +430,7 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
 
             }
             int payEstatus = 0;
-            String converted="";
+            String converted = "";
             for (int i = 0; i < MiLista.size(); i++) {
                 System.out.println("aun");
                 AuxiliaresD auxd = MiLista.get(i);
@@ -439,10 +439,10 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
                 } else {
                     payEstatus = 2;
                 }
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    LocalDateTime localDate = LocalDateTime.parse("2021-10-07"+" 00:00:00", dtf);
-                    converted=String.valueOf(convertToLocalDateTimeViaInstant(auxd.getAuxiliaresDPK().getFecha())+"Z");
-                    LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                LocalDateTime localDate = LocalDateTime.parse("2021-10-07" + " 00:00:00", dtf);
+                converted = String.valueOf(convertToLocalDateTimeViaInstant(auxd.getAuxiliaresDPK().getFecha()) + "Z");
+                LocalDateTime now = LocalDateTime.now();
                 loanp = new LoanPayment(Double.parseDouble(auxiliares.getSaldo().toString()),
                         0,
                         payEstatus,
@@ -459,9 +459,9 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             System.out.println("listaPayments:" + listPayment);
 
         } catch (Exception e) {
-
             System.out.println("Error al buscar auxiliares d:" + e.getMessage());
-
+        } finally {
+            em.close();
         }
         return listPayment;
     }
@@ -493,6 +493,8 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
         } catch (Exception e) {
             System.out.println("Error en FeesDueData:" + e.getMessage());
 
+        } finally {
+            em.close();
         }
         System.out.println("FeesDueData:" + FeesDueDataRS);
         return FeesDueDataRS;
@@ -512,7 +514,8 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             System.out.println("Abonos Vencidos:" + abonosVencidos);
         } catch (Exception e) {
             System.out.println("Error en FeesDueData:" + e.getMessage());
-
+        } finally {
+            em.close();
         }
         return abonosVencidos;
     }
@@ -522,7 +525,6 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
         EntityManager em = AbstractFacade.conexion();
         //Obejeto para cuota
         LoanFee loanFee = new LoanFee();
-
         try {
             AuxiliaresPK pk = new AuxiliaresPK(o, p, a);
             Auxiliares aux = em.find(Auxiliares.class, pk);
@@ -533,48 +535,50 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             String sai = RsSai.getSingleResult().toString();
             String[] parts = sai.split("\\|");
             List list = Arrays.asList(parts);
-            Query query_next_fee=null;
-            Amortizaciones amm=null;
-                Double imvencido=0.0,iovencido=0.0,montoCuota=0.0;
-            
+            Query query_next_fee = null;
+            Amortizaciones amm = null;
+            Double imvencido = 0.0, iovencido = 0.0, montoCuota = 0.0;
+
+            int idamortizacion = 0;
             int estatus_amortizacion = 0;//El estatus de la amortizacion
-            if(list.get(13).toString().equals("C")){
-                 //Obtengo la amortizacion que se vence
-            String consultaA = "SELECT * FROM amortizaciones WHERE idorigenp=" + o
-                    + " AND idproducto=" + p
-                    + " AND idauxiliar=" + a
-                    + " AND vence='" + list.get(10) + "'";
-            System.out.println("consulta_amortizacion:" + consultaA);
-            query_next_fee = em.createNativeQuery(consultaA, Amortizaciones.class);
-            amm = (Amortizaciones) query_next_fee.getSingleResult();            
-            if (Double.parseDouble(amm.getAbono().toString()) == Double.parseDouble(amm.getAbonopag().toString())) {
-                estatus_amortizacion = 3;
-            } else if (Double.parseDouble(amm.getAbono().toString()) > Double.parseDouble(amm.getAbonopag().toString()) && amm.getTodopag() == false) {
-                estatus_amortizacion = 1;
-            } else if (!list.get(13).toString().equals("C")) {//Si esta vencido
-                estatus_amortizacion = 2;
-            }
-            montoCuota=amm.getAbono().doubleValue() + iovencido + imvencido;
-            //Double montovencido = Double.parseDouble(list.get(4).toString());
-            }else{
-                String consultaA = "SELECT sum(abono)-sum(abonopag) FROM amortizaciones WHERE idorigenp=" + o
-                    + " AND idproducto=" + p
-                    + " AND idauxiliar=" + a
-                    + " AND date(vence)<'"+ list.get(10) + "'"
-                    + " AND todopag=false";
-            System.out.println("consulta_amortizacion_moroso:" + consultaA);
-            Query total_a_cubrir_hoy=em.createNativeQuery(consultaA);
-            montoCuota=Double.parseDouble(String.valueOf(total_a_cubrir_hoy.getSingleResult()))+iovencido+imvencido;
+            if (list.get(13).toString().equals("C")) {
+                //Obtengo la amortizacion que se vence
+                String consultaA = "SELECT * FROM amortizaciones WHERE idorigenp=" + o
+                        + " AND idproducto=" + p
+                        + " AND idauxiliar=" + a
+                        + " AND vence='" + list.get(10) + "'";
+                System.out.println("consulta_amortizacion:" + consultaA);
+                query_next_fee = em.createNativeQuery(consultaA, Amortizaciones.class);
+                amm = (Amortizaciones) query_next_fee.getSingleResult();
+                if (Double.parseDouble(amm.getAbono().toString()) == Double.parseDouble(amm.getAbonopag().toString())) {
+                    estatus_amortizacion = 3;
+                } else if (Double.parseDouble(amm.getAbono().toString()) > Double.parseDouble(amm.getAbonopag().toString()) && amm.getTodopag() == false) {
+                    estatus_amortizacion = 1;
+                } else if (!list.get(13).toString().equals("C")) {//Si esta vencido
+                    estatus_amortizacion = 2;
+                }
+                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + iovencido + imvencido;
+                idamortizacion = amm.getAmortizacionesPK().getIdamortizacion();
+                //Double montovencido = Double.parseDouble(list.get(4).toString());
+            } else {
+                //montoCuota = Double.parseDouble(String.valueOf(list.get(5)));//Double.parseDouble(String.valueOf(total_a_cubrir_hoy.getSingleResult())) + iovencido + imvencido;
+                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + iovencido + imvencido;
+                //Obtengo el idamortizacion que no hay que cubrir
+                String consulta_id_amortizaciones = "SELECT idamortizacion FROM amortizaciones WHERE idorigenp=" + o
+                        + " AND idproducto=" + p
+                        + " AND idauxiliar=" + a
+                        + " AND todopag=false ORDER BY vence limit 1";
+                System.out.println("consulta_amortizacion_moroso:" + consulta_id_amortizaciones);
+                Query id_amortizacion = em.createNativeQuery(consulta_id_amortizaciones);
+                idamortizacion = Integer.parseInt(String.valueOf(id_amortizacion.getSingleResult()));
+
             }
             iovencido = Double.parseDouble(list.get(12).toString()) + Double.parseDouble(list.get(17).toString());
             imvencido = Double.parseDouble(list.get(9).toString()) + Double.parseDouble(list.get(18).toString());
-            
-            
 
             //Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
-
             loanFee.setCapitalBalance(Double.parseDouble(aux.getSaldo().toString()));//Saldo o balance actual del prestamo
-            loanFee.setFeeNumber(amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion());//Numero de cuota
+            loanFee.setFeeNumber(idamortizacion);//(amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion());//Numero de cuota
             loanFee.setPrincipalAmount(Double.parseDouble(String.valueOf(list.get(11))));//monto de la cuota
             loanFee.setDueDate(String.valueOf(list.get(10)));//fecha de vencimiento
             loanFee.setInterestAmount(iovencido);//Monto de interes
@@ -594,8 +598,9 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
                     Double.parseDouble(amm.getAbono().toString()),
                     abonoT);*/
         } catch (Exception e) {
-
             System.out.println("Error en LoanFee:" + e.getMessage());
+        } finally {
+            em.close();
         }
 
         return loanFee;
@@ -614,7 +619,8 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             diasVencidos = Integer.parseInt(list.get(3).toString());
         } catch (Exception e) {
             System.out.println("Error en FeesDueData:" + e.getMessage());
-
+        } finally {
+            em.close();
         }
 
         return diasVencidos;
@@ -630,8 +636,9 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
         } catch (Exception e) {
 
             System.out.println("Error en buscar tipoproducto:" + e.getMessage());
+        } finally {
+            em.close();
         }
-
         return tipoproducto;
     }
 
@@ -646,12 +653,12 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
         System.out.println("date:" + date);
         return date;
     }
-    
+
     public LocalDate convertToLocalDateViaInstant(Date dateToConvert) {
-    return dateToConvert.toInstant()
-      .atZone(ZoneId.systemDefault())
-      .toLocalDate();
-}
+        return dateToConvert.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+    }
 
     public int contadorGeneral(String productBankIdentifier, int identificador, int feesstatus) {
         EntityManager em = AbstractFacade.conexion();
@@ -683,6 +690,8 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
         } catch (Exception e) {
             System.out.println("Error al obtener contador general:" + e.getMessage());
             return 0;
+        } finally {
+            em.close();
         }
         return cont;
     }
@@ -702,9 +711,9 @@ public LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
             }
         } catch (Exception e) {
             System.out.println("Error al verificar el horario de actividad");
-
+        } finally {
+            em.close();
         }
-
         return bandera_;
     }
 

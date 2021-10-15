@@ -555,6 +555,8 @@ public abstract class FacadeTransaction<T> {
             }
             System.out.println("Error Al ejecutar transferencia:" + e.getMessage());
             return backendResponse;
+        }finally{
+            em.close();
         }
 
         return backendResponse;
@@ -584,6 +586,8 @@ public abstract class FacadeTransaction<T> {
         } catch (Exception e) {
             System.out.println("Error al crear voucher:" + e.getMessage());
             return "";
+        }finally{
+            em.close();
         }
 
     }
@@ -765,6 +769,8 @@ public abstract class FacadeTransaction<T> {
             message = "ERROR AL PROCESAR CONSULTA VALIDACIONES DE DATOS";
             System.out.println("Error en validacion transferencia entre mis cuentas:" + e.getMessage());
             return message;
+        }finally{
+            em.close();
         }
         return message.toUpperCase();
     }
@@ -941,6 +947,8 @@ public abstract class FacadeTransaction<T> {
             message = e.getMessage();
             System.out.println("Errro al validar transferencia a terceros:" + e.getMessage());
             return message;
+        }finally{
+            em.close();
         }
         return message.toUpperCase();
     }
@@ -1159,6 +1167,8 @@ public abstract class FacadeTransaction<T> {
             message = e.getMessage();
             System.out.println("Error al realizar pago a prestamo:" + e.getMessage());
             return message;
+        }finally{
+            em.close();
         }
         System.out.println("el mensaje es:" + message);
 
@@ -1316,6 +1326,8 @@ public abstract class FacadeTransaction<T> {
             message = e.getMessage();
             System.out.println("Error al realizar tranferenciasSPEI:" + e.getMessage());
             return message;
+        }finally{
+            em.close();
         }
         return message.toUpperCase();
     }
@@ -1388,6 +1400,8 @@ public abstract class FacadeTransaction<T> {
             response.setError("GENERAL:" + ex.getMessage());
 
             return response;
+        }finally{
+            em.close();
         }
         return response;
     }
@@ -1410,6 +1424,8 @@ public abstract class FacadeTransaction<T> {
         } catch (Exception e) {
 
             System.out.println("Error al validar monto min-max:" + e.getMessage());
+        }finally{
+            em.close();
         }
         return mensaje;
     }
@@ -1484,6 +1500,8 @@ public abstract class FacadeTransaction<T> {
         } catch (Exception e) {
 
             System.out.println("Error al validar permitido diario:" + e.getMessage());
+        }finally{
+            em.close();
         }
         return false;
     }
@@ -1513,6 +1531,8 @@ public abstract class FacadeTransaction<T> {
             }
         } catch (Exception e) {
             System.out.println("Error al verificar el horario de actividad");
+        }finally{
+            em.close();
         }
 
         return bandera_;
@@ -1638,12 +1658,11 @@ public abstract class FacadeTransaction<T> {
             mensaje = e.getMessage();
 
             return mensaje.toUpperCase();
+        }finally{
+            em.close();
         }
         return mensaje.toUpperCase();
 
     }
 
-    public void cerrar() {
-//        emf.close();
-    }
 }

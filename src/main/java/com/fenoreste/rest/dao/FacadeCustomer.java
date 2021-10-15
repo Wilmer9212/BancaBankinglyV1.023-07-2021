@@ -56,7 +56,9 @@ public abstract class FacadeCustomer<T> {
         } catch (Exception e) {
             System.out.println("Error leer socio:" + e.getMessage());
             return client;
-        } 
+        } finally {
+            em.close();
+        }
         return client;
     }
 
@@ -82,7 +84,9 @@ public abstract class FacadeCustomer<T> {
         } catch (Exception e) {
             System.out.println("Error leer socio:" + e.getMessage());
             return client;
-        } 
+        } finally {
+            em.close();
+        }
         return client;
     }
 
@@ -160,15 +164,15 @@ public abstract class FacadeCustomer<T> {
                     + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
 
         } else {*/
-            System.out.println("entro aquiiii");
-            consulta = "SELECT * FROM personas p WHERE "
-                    + "replace((p." + IdentClientType.toUpperCase() + "),' ','')='" + documentId.replace(" ", "").trim() + "'"
-                    + " AND UPPER(REPLACE(p.nombre,' ',''))='" + Name.toUpperCase().replace(" ", "").trim() + "'"
-                    + " AND UPPER(appaterno)||''||UPPER(p.apmaterno) LIKE ('%" + LastName.toUpperCase().replace(" ", "") + "%')"
-                    + " AND (CASE WHEN email IS NULL THEN '' ELSE trim(email) END)='" + Mail + "'"
-                    + " AND (CASE WHEN telefono IS NULL THEN '' ELSE trim(telefono) END)='" + Phone + "'"
-                    + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
-       //}
+        System.out.println("entro aquiiii");
+        consulta = "SELECT * FROM personas p WHERE "
+                + "replace((p." + IdentClientType.toUpperCase() + "),' ','')='" + documentId.replace(" ", "").trim() + "'"
+                + " AND UPPER(REPLACE(p.nombre,' ',''))='" + Name.toUpperCase().replace(" ", "").trim() + "'"
+                + " AND UPPER(appaterno)||''||UPPER(p.apmaterno) LIKE ('%" + LastName.toUpperCase().replace(" ", "") + "%')"
+                + " AND (CASE WHEN email IS NULL THEN '' ELSE trim(email) END)='" + Mail + "'"
+                + " AND (CASE WHEN telefono IS NULL THEN '' ELSE trim(telefono) END)='" + Phone + "'"
+                + " AND (CASE WHEN celular IS NULL THEN '' ELSE trim(celular) END)='" + CellPhone + "' LIMIT 1";
+        //}
         System.out.println("Consulta:" + consulta);
         try {   //Se deberia buscar por telefono,celular,email pero Mitras solicito que solo sea x curp y nombre esta en prueba            
             Query query = em.createNativeQuery(consulta, Persona.class);
@@ -176,7 +180,9 @@ public abstract class FacadeCustomer<T> {
         } catch (Exception e) {
             System.out.println("Error al Buscar personas:" + e.getMessage());
             return persona;
-        } 
+        } finally {
+            em.close();
+        }
         return persona;
     }
 
@@ -190,7 +196,6 @@ public abstract class FacadeCustomer<T> {
             //Busco la tabla donde guarda el producto para banca movil
             TablasPK tablasPK = new TablasPK("bankingly_banca_movil", "producto_banca_movil");
             Tablas tablaProducto = em.find(Tablas.class, tablasPK);
-
             //Buscamos que el socio tenga el producto para banca movil aperturado en auxiliares            
             //Reglas CSN,Mitras
             String busquedaFolio = "SELECT * FROM auxiliares WHERE idorigen=" + idorigen + " AND idgrupo=" + idgrupo + " AND idsocio=" + idsocio + " AND idproducto=" + tablaProducto.getDato1() + " AND estatus=0";
@@ -298,6 +303,8 @@ public abstract class FacadeCustomer<T> {
             mensaje = "El usuario no tiene habilitado el producto para banca movil";
             System.out.println("Error en metodo para validar datos:" + e.getMessage());
             return mensaje.toUpperCase();
+        } finally {
+            em.close();
         }
         return mensaje.toUpperCase();
     }
@@ -384,8 +391,10 @@ public abstract class FacadeCustomer<T> {
         } catch (Exception e) {
             mensaje = "El usuario no tiene habilitado el producto para banca movil";
             System.out.println("Error en metodo para buscar persona registrada:" + e.getMessage());
-         
+
             return mensaje.toUpperCase();
+        } finally {
+            em.close();
         }
         return mensaje.toUpperCase();
     }
@@ -419,10 +428,12 @@ public abstract class FacadeCustomer<T> {
             em.getTransaction().commit();
             return true;
         } catch (Exception e) {
-           
             System.out.println("Error al persistir usuario:" + username + ":" + e.getMessage());
             return false;
-        } }
+        } finally {
+            em.close();
+        }
+    }
 
     public String detectarCodificacionBD() {
         EntityManager em = AbstractFacade.conexion();
@@ -446,15 +457,13 @@ public abstract class FacadeCustomer<T> {
             System.out.println("Size:" + lista);
             long time = System.currentTimeMillis();
             Timestamp timestamp = new Timestamp(time);
-            Instant instant = timestamp.toInstant();
             System.out.println("Current Time Stamp: " + timestamp);
 
-            
         } catch (Exception e) {
             System.out.println("Error en pruebas para Prezzta:" + e.getMessage());
-           
+        } finally {
+            em.close();
         }
-
     }
 
     public String Random() {
@@ -484,11 +493,10 @@ public abstract class FacadeCustomer<T> {
             }
         } catch (Exception e) {
             System.out.println("Error al verificar el horario de actividad");
-         
+        } finally {
+            em.close();
         }
         return bandera_;
     }
-    
-   
 
 }

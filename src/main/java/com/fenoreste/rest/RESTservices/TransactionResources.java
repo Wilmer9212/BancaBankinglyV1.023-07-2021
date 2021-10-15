@@ -149,7 +149,7 @@ public class TransactionResources {
             JsonObject obje=new JsonObject();
             obje.put("ERROR","VERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
             backendOperationResult.setBackendMessage("VVERIFIQUE SU HORARIO DE ACTIVIDAD FECHA,HORA O CONTACTE A SU PROVEEEDOR");
-            dao.cerrar();
+           
             return Response.status(Response.Status.BAD_GATEWAY).entity(backendOperationResult).build();
         }
         try {
@@ -228,11 +228,8 @@ public class TransactionResources {
             }*/
         
         } catch (Exception e) {
-            dao.cerrar();
             return Response.status(Response.Status.BAD_GATEWAY).entity(e.getMessage()).build();
-        } finally {            
-            dao.cerrar();
-        }
+        } 
         return Response.status(Response.Status.OK).entity(build).build();
     }
     
@@ -269,8 +266,6 @@ public class TransactionResources {
         } catch (Exception e) {
             jsonMessage.put("Error",e.getMessage());
             return Response.status(Response.Status.BAD_GATEWAY).entity(jsonMessage).build();
-        }finally{
-            dao.cerrar();
         }
         return Response.status(Response.Status.OK).entity(jsonMessage).build();
     }
