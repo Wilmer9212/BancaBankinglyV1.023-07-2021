@@ -538,7 +538,13 @@ public abstract class FacadeLoan<T> {
             Query query_next_fee = null;
             Amortizaciones amm = null;
             Double imvencido = 0.0, iovencido = 0.0, montoCuota = 0.0;
+            
+            
+            //::io_calculado+iva_io_total
+            iovencido = Double.parseDouble(list.get(6).toString()) + Double.parseDouble(list.get(17).toString());
+            imvencido = Double.parseDouble(list.get(15).toString()) + Double.parseDouble(list.get(18).toString());
 
+            
             int idamortizacion = 0;
             int estatus_amortizacion = 0;//El estatus de la amortizacion
             if (list.get(13).toString().equals("C")) {
@@ -557,12 +563,12 @@ public abstract class FacadeLoan<T> {
                 } else if (!list.get(13).toString().equals("C")) {//Si esta vencido
                     estatus_amortizacion = 2;
                 }
-                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + iovencido + imvencido;
+                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + Double.parseDouble(String.valueOf(list.get(4))) + iovencido + imvencido;
                 idamortizacion = amm.getAmortizacionesPK().getIdamortizacion();
                 //Double montovencido = Double.parseDouble(list.get(4).toString());
             } else {
                 //montoCuota = Double.parseDouble(String.valueOf(list.get(5)));//Double.parseDouble(String.valueOf(total_a_cubrir_hoy.getSingleResult())) + iovencido + imvencido;
-                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + iovencido + imvencido;
+                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + Double.parseDouble(String.valueOf(list.get(4))) + iovencido + imvencido;
                 //Obtengo el idamortizacion que no hay que cubrir
                 String consulta_id_amortizaciones = "SELECT idamortizacion FROM amortizaciones WHERE idorigenp=" + o
                         + " AND idproducto=" + p
@@ -573,9 +579,7 @@ public abstract class FacadeLoan<T> {
                 idamortizacion = Integer.parseInt(String.valueOf(id_amortizacion.getSingleResult()));
 
             }
-            iovencido = Double.parseDouble(list.get(12).toString()) + Double.parseDouble(list.get(17).toString());
-            imvencido = Double.parseDouble(list.get(9).toString()) + Double.parseDouble(list.get(18).toString());
-
+           
             //Double abonoT = Double.parseDouble(amm.getAbono().toString()) + iovencido + imvencido;
             loanFee.setCapitalBalance(Double.parseDouble(aux.getSaldo().toString()));//Saldo o balance actual del prestamo
             loanFee.setFeeNumber(idamortizacion);//(amm.getAmortizacionesPK().getIdorigenp() + amm.getAmortizacionesPK().getIdproducto() + amm.getAmortizacionesPK().getIdauxiliar() + amm.getAmortizacionesPK().getIdamortizacion());//Numero de cuota
