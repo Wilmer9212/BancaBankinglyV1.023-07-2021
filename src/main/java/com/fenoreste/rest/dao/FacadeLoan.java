@@ -568,7 +568,7 @@ public abstract class FacadeLoan<T> {
                 //Double montovencido = Double.parseDouble(list.get(4).toString());
             } else {
                 //montoCuota = Double.parseDouble(String.valueOf(list.get(5)));//Double.parseDouble(String.valueOf(total_a_cubrir_hoy.getSingleResult())) + iovencido + imvencido;
-                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + Double.parseDouble(String.valueOf(list.get(4))) + iovencido + imvencido;
+                montoCuota = Double.parseDouble(String.valueOf(list.get(11))) + iovencido + imvencido;
                 //Obtengo el idamortizacion que no hay que cubrir
                 String consulta_id_amortizaciones = "SELECT idamortizacion FROM amortizaciones WHERE idorigenp=" + o
                         + " AND idproducto=" + p

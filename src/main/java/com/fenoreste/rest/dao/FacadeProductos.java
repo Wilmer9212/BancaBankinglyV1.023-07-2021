@@ -148,7 +148,17 @@ public abstract class FacadeProductos<T> {
                 Double saldo = 0.0;
                 for (int i = 0; i < listaA.size(); i++) {
                     Auxiliares a = listaA.get(i);
-                    saldo = Double.parseDouble(a.getSaldo().toString());
+                    //correr sai_auxiliar para obtener interese
+                    String sai_auxiliar = "SELECT * FROM sai_auxiliar(" + a.getAuxiliaresPK().getIdorigenp() + "," + a.getAuxiliaresPK().getIdproducto() + "," + a.getAuxiliaresPK().getIdauxiliar() + ",(SELECT date(fechatrabajo) FROM origenes limit 1))";
+                    Query RsSai = em.createNativeQuery(sai_auxiliar);
+                    String sai = RsSai.getSingleResult().toString();
+                    String[] parts = sai.split("\\|");
+                    List list = Arrays.asList(parts);//Posiciones sai
+
+                    Double iovencido = Double.parseDouble(list.get(6).toString()) + Double.parseDouble(list.get(17).toString());
+                    Double imvencido = Double.parseDouble(list.get(15).toString()) + Double.parseDouble(list.get(18).toString());
+
+                    saldo = Double.parseDouble(a.getSaldo().toString()) + Double.parseDouble(sai);
                     Tablas tablaTDD = util2.busquedaTabla(em, "bankingly_banca_movil", "producto_tdd");
                     if (util2.obtenerOrigen(em).contains("SANNICOLAS") && a.getAuxiliaresPK().getIdproducto() == Integer.parseInt(tablaTDD.getDato2())) {
                         WsSiscoopFoliosTarjetasPK1 foliosPK = new WsSiscoopFoliosTarjetasPK1(a.getAuxiliaresPK().getIdorigenp(), a.getAuxiliaresPK().getIdproducto(), a.getAuxiliaresPK().getIdauxiliar());
