@@ -181,7 +181,7 @@ public abstract class FacadeProductos<T> {
                     }
 
                     Productos pr = em.find(Productos.class, a.getAuxiliaresPK().getIdproducto());
-                    String sai = "";
+                   
                     String vencimiento = "";
                     Double tasa = 0.0;
                     Productos_bankingly ctb = em.find(Productos_bankingly.class, a.getAuxiliaresPK().getIdproducto());
